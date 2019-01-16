@@ -3,8 +3,6 @@ Description: "deploy portworx lighthouose"
 Parameters:
   KubeManifestLambdaArn:
     Type: String
-  HelmLambdaArn:
-    Type: String
   KubeConfigPath:
     Type: String
   KubeConfigKmsContext:

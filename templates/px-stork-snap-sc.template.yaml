@@ -3,8 +3,6 @@ Description: "deploy stork snapshot storageclass"
 Parameters:
   KubeManifestLambdaArn:
     Type: String
-  HelmLambdaArn:
-    Type: String
   KubeConfigPath:
     Type: String
   KubeConfigKmsContext:

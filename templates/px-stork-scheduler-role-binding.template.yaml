@@ -3,8 +3,6 @@ Description: "deploy storrk scheduler role binding"
 Parameters:
   KubeManifestLambdaArn:
     Type: String
-  HelmLambdaArn:
-    Type: String
   KubeConfigPath:
     Type: String
   KubeConfigKmsContext:

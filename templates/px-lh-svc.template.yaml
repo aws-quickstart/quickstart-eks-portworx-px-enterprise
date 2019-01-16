@@ -4,8 +4,6 @@ Description: "deploy portworx lighthouse service"
 Parameters:
   KubeManifestLambdaArn:
     Type: String
-  HelmLambdaArn:
-    Type: String
   KubeConfigPath:
     Type: String
   KubeConfigKmsContext:

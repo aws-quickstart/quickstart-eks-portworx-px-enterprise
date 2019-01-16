@@ -3,28 +3,283 @@ Description: Deploys Portworx Enterprise into an existing Kubernetes Cluster (qs
 Parameters:
   KubeManifestLambdaArn:
     Type: String
+  TillerInstallLambdaArn:
+    Type: String
   KubeConfigPath:
     Type: String
   KubeConfigKmsContext:
     Type: String
     Default: "EKSQuickStart"
-  KubeClusterName:
+  PortworxClusterName:
     Type: String
   NodeGroupIAMRole:
     Type: String
+  QSS3BucketName:
+    Type: String
+  QSS3KeyPrefix:
+    Type: String
 Resources:
-  ## Portworx resources go here
-  DummyResource:
-    Type: "Custom::KubeManifest"
-    Version: '1.0'
+  PortworxNamespaceStack:
+    Type: AWS::CloudFormation::Stack
     Properties:
-      ServiceToken: !Ref KubeManifestLambdaArn
-      KubeConfigPath: !Ref KubeConfigPath
-      KubeConfigKmsContext: !Ref KubeConfigKmsContext
-      Manifest:
-        apiVersion: v1
-        kind: ConfigMap
-        metadata:
-          namespace: kube-system
-        data:
-          DummyData: "erp"
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/px-ns.template.yaml'
+      Parameters:
+        KubeManifestLambdaArn: !Ref KubeManifestLambdaArn
+        KubeConfigPath: !Ref KubeConfigPath
+        KubeConfigKmsContext: !Ref KubeConfigKmsContext
+  PortworxDaemonSetStack:
+    DependsOn: PortworxNamespaceStack
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/px-daemonset.template.yaml'
+      Parameters:
+        KubeManifestLambdaArn: !Ref KubeManifestLambdaArn
+        KubeConfigPath: !Ref KubeConfigPath
+        KubeConfigKmsContext: !Ref KubeConfigKmsContext
+        PortworxClusterName: !Ref PortworxClusterName
+  PXServiceAccountStack:
+    DependsOn: PortworxNamespaceStack
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/px-account.template.yaml'
+      Parameters:
+        KubeManifestLambdaArn: !Ref KubeManifestLambdaArn
+        KubeConfigPath: !Ref KubeConfigPath
+        KubeConfigKmsContext: !Ref KubeConfigKmsContext
+  PXLightgouseServiceAccountStack:
+    DependsOn: PortworxNamespaceStack
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/px-lh-account.template.yaml'
+      Parameters:
+        KubeManifestLambdaArn: !Ref KubeManifestLambdaArn
+        KubeConfigPath: !Ref KubeConfigPath
+        KubeConfigKmsContext: !Ref KubeConfigKmsContext
+  PXLightgouseDeploymentStack:
+    DependsOn: PortworxNamespaceStack
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/px-lh-deployment.template.yaml'
+      Parameters:
+        KubeManifestLambdaArn: !Ref KubeManifestLambdaArn
+        KubeConfigPath: !Ref KubeConfigPath
+        KubeConfigKmsContext: !Ref KubeConfigKmsContext
+  PXLighthouseRoleBindingStack:
+    DependsOn: PortworxNamespaceStack
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/px-lh-role-binding.template.yaml'
+      Parameters:
+        KubeManifestLambdaArn: !Ref KubeManifestLambdaArn
+        KubeConfigPath: !Ref KubeConfigPath
+        KubeConfigKmsContext: !Ref KubeConfigKmsContext
+  PXLighthouseRoleStack:
+    DependsOn: PortworxNamespaceStack
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/px-lh-role.template.yaml'
+      Parameters:
+        KubeManifestLambdaArn: !Ref KubeManifestLambdaArn
+        KubeConfigPath: !Ref KubeConfigPath
+        KubeConfigKmsContext: !Ref KubeConfigKmsContext
+  PXLighthouseServiceStack:
+    DependsOn: PortworxNamespaceStack
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/px-lh-svc.template.yaml'
+      Parameters:
+        KubeManifestLambdaArn: !Ref KubeManifestLambdaArn
+        KubeConfigPath: !Ref KubeConfigPath
+        KubeConfigKmsContext: !Ref KubeConfigKmsContext
+  PXNodeGetPutListRoleStack:
+    DependsOn: PortworxNamespaceStack
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/px-node-get-put-list-role.template.yaml'
+      Parameters:
+        KubeManifestLambdaArn: !Ref KubeManifestLambdaArn
+        KubeConfigPath: !Ref KubeConfigPath
+        KubeConfigKmsContext: !Ref KubeConfigKmsContext
+  PXNodeRoleBindingStack:
+    DependsOn: PortworxNamespaceStack
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/px-node-role-binding.template.yaml'
+      Parameters:
+        KubeManifestLambdaArn: !Ref KubeManifestLambdaArn
+        KubeConfigPath: !Ref KubeConfigPath
+        KubeConfigKmsContext: !Ref KubeConfigKmsContext
+  PXRoleBindingStack:
+    DependsOn: PortworxNamespaceStack
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/px-role-binding.template.yaml'
+      Parameters:
+        KubeManifestLambdaArn: !Ref KubeManifestLambdaArn
+        KubeConfigPath: !Ref KubeConfigPath
+        KubeConfigKmsContext: !Ref KubeConfigKmsContext
+  PXRoleStack:
+    DependsOn: PortworxNamespaceStack
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/px-role.template.yaml'
+      Parameters:
+        KubeManifestLambdaArn: !Ref KubeManifestLambdaArn
+        KubeConfigPath: !Ref KubeConfigPath
+        KubeConfigKmsContext: !Ref KubeConfigKmsContext
+  PXServiceStack:
+    DependsOn: PortworxNamespaceStack
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/px-service.template.yaml'
+      Parameters:
+        KubeManifestLambdaArn: !Ref KubeManifestLambdaArn
+        KubeConfigPath: !Ref KubeConfigPath
+        KubeConfigKmsContext: !Ref KubeConfigKmsContext
+  PXStorkAccountStack:
+    DependsOn: PortworxNamespaceStack
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/px-stork-account.template.yaml'
+      Parameters:
+        KubeManifestLambdaArn: !Ref KubeManifestLambdaArn
+        KubeConfigPath: !Ref KubeConfigPath
+        KubeConfigKmsContext: !Ref KubeConfigKmsContext
+  PXStorkConfigStack:
+    DependsOn: PortworxNamespaceStack
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/px-stork-config.template.yaml'
+      Parameters:
+        KubeManifestLambdaArn: !Ref KubeManifestLambdaArn
+        KubeConfigPath: !Ref KubeConfigPath
+        KubeConfigKmsContext: !Ref KubeConfigKmsContext
+  PXStorkDeploymentStack:
+    DependsOn: PortworxNamespaceStack
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/px-stork-deployment.template.yaml'
+      Parameters:
+        KubeManifestLambdaArn: !Ref KubeManifestLambdaArn
+        KubeConfigPath: !Ref KubeConfigPath
+        KubeConfigKmsContext: !Ref KubeConfigKmsContext
+  PXStorkRoleBindingStack:
+    DependsOn: PortworxNamespaceStack
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/px-stork-role-binding.template.yaml'
+      Parameters:
+        KubeManifestLambdaArn: !Ref KubeManifestLambdaArn
+        KubeConfigPath: !Ref KubeConfigPath
+        KubeConfigKmsContext: !Ref KubeConfigKmsContext
+  PXStorkRoleStack:
+    DependsOn: PortworxNamespaceStack
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/px-stork-role.template.yaml'
+      Parameters:
+        KubeManifestLambdaArn: !Ref KubeManifestLambdaArn
+        KubeConfigPath: !Ref KubeConfigPath
+        KubeConfigKmsContext: !Ref KubeConfigKmsContext
+  PXStorkSchedulerAccountStack:
+    DependsOn: PortworxNamespaceStack
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/px-stork-scheduler-account.template.yaml'
+      Parameters:
+        KubeManifestLambdaArn: !Ref KubeManifestLambdaArn
+        KubeConfigPath: !Ref KubeConfigPath
+        KubeConfigKmsContext: !Ref KubeConfigKmsContext
+  PXStorkSchedulerDeploymentStack:
+    DependsOn: PortworxNamespaceStack
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/px-stork-scheduler-deployment.template.yaml'
+      Parameters:
+        KubeManifestLambdaArn: !Ref KubeManifestLambdaArn
+        KubeConfigPath: !Ref KubeConfigPath
+        KubeConfigKmsContext: !Ref KubeConfigKmsContext
+  PXStorkSchedulerRoleBindingStack:
+    DependsOn: PortworxNamespaceStack
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/px-stork-scheduler-role-binding.template.yaml'
+      Parameters:
+        KubeManifestLambdaArn: !Ref KubeManifestLambdaArn
+        KubeConfigPath: !Ref KubeConfigPath
+        KubeConfigKmsContext: !Ref KubeConfigKmsContext
+  PXStorkSchedulerRoleStack:
+    DependsOn: PortworxNamespaceStack
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/px-stork-scheduler-role.template.yaml'
+      Parameters:
+        KubeManifestLambdaArn: !Ref KubeManifestLambdaArn
+        KubeConfigPath: !Ref KubeConfigPath
+        KubeConfigKmsContext: !Ref KubeConfigKmsContext
+  PXStorkServiceStack:
+    DependsOn: PortworxNamespaceStack
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/px-stork-service.template.yaml'
+      Parameters:
+        KubeManifestLambdaArn: !Ref KubeManifestLambdaArn
+        KubeConfigPath: !Ref KubeConfigPath
+        KubeConfigKmsContext: !Ref KubeConfigKmsContext
+  PXStorkSnapshotStorageClassStack:
+    DependsOn: PortworxNamespaceStack
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/px-stork-snap-sc.template.yaml'
+      Parameters:
+        KubeManifestLambdaArn: !Ref KubeManifestLambdaArn
+        KubeConfigPath: !Ref KubeConfigPath
+        KubeConfigKmsContext: !Ref KubeConfigKmsContext
+  PXPvcControllreAccountStack:
+    DependsOn: PortworxNamespaceStack
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/px-pvc-controller-account.template.yaml'
+      Parameters:
+        KubeManifestLambdaArn: !Ref KubeManifestLambdaArn
+        KubeConfigPath: !Ref KubeConfigPath
+        KubeConfigKmsContext: !Ref KubeConfigKmsContext
+  PXPvcControllerRoleBindingStack:
+    DependsOn: PortworxNamespaceStack
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/px-pvc-controller-role-binding.template.yaml'
+      Parameters:
+        KubeManifestLambdaArn: !Ref KubeManifestLambdaArn
+        KubeConfigPath: !Ref KubeConfigPath
+        KubeConfigKmsContext: !Ref KubeConfigKmsContext
+  PXPvcControllerDeploymentStack:
+    DependsOn: PortworxNamespaceStack
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/px-pvc-controller-deployment.template.yaml'
+      Parameters:
+        KubeManifestLambdaArn: !Ref KubeManifestLambdaArn
+        KubeConfigPath: !Ref KubeConfigPath
+        KubeConfigKmsContext: !Ref KubeConfigKmsContext
+  PXPvcControllerRoleStack:
+    DependsOn: PortworxNamespaceStack
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/px-pvc-controller-role.template.yaml'
+      Parameters:
+        KubeManifestLambdaArn: !Ref KubeManifestLambdaArn
+        KubeConfigPath: !Ref KubeConfigPath
+        KubeConfigKmsContext: !Ref KubeConfigKmsContext
+  PXNodePolicyStack:
+    DependsOn: PortworxNamespaceStack
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/px-nodeiampolicy.template.yaml'
+      Parameters:
+        NodeGroupRoleName: !Ref NodeGroupIAMRole
+Outputs:
+  PortworxNamspaceUid:
+    Value: !GetAtt PortworxNamespaceStack.Outputs.NSUid
+  PortworxDaemonsetUid:
+    Value: !GetAtt PortworxDaemonSetStack.Outputs.DaemonsetUid

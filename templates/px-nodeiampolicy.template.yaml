@@ -1,0 +1,44 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Amazon EKS - Node Group - Released 2018-08-21
+Parameters:
+  NodeGroupRoleName: 
+    Description: EKS Nodegroup Role to add Portworx policy to.
+    Type: String
+    Default: ''
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: Worker Configuration
+      Parameters:
+      - NodeGroupRoleName
+Resources:
+  NodeInstancePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: PwxWorkerNodePolicy
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - ec2:AttachVolume
+          - ec2:DetachVolume
+          - ec2:CreateTags
+          - ec2:CreateVolume
+          - ec2:DeleteTags
+          - ec2:DeleteVolume
+          - ec2:DescribeTags
+          - ec2:DescribeVolumeAttribute
+          - ec2:DescribeVolumesModifications
+          - ec2:DescribeVolumeStatus
+          - ec2:DescribeVolumes
+          - ec2:DescribeInstances
+          Resource: "*"
+      Roles:
+      - Ref: NodeGroupRoleName
+Outputs:
+  NodeInstancePolicy:
+    Description: The node instance policy ID
+    Value: !Ref NodeInstancePolicy

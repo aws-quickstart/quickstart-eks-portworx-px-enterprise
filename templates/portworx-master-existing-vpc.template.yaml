@@ -169,6 +169,7 @@ Conditions:
   - ''
 Resources:
   PortworxStack:
+    DependsOn: NodeGroupStack
     Type: "AWS::CloudFormation::Stack"
     Properties:
       TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/portworx.template.yaml'
@@ -177,8 +178,10 @@ Resources:
         KubeConfigKmsContext: "EKSQuickStart"
         TillerInstallLambdaArn: !GetAtt FunctionStack.Outputs.TillerInstallLambdaArn
         KubeManifestLambdaArn: !GetAtt FunctionStack.Outputs.KubeManifestLambdaArn
-        KubeClusterName: !GetAtt EKSControlPlane.EKSName
+        PortworxClusterName: !Join [ "-", [ !GetAtt EKSControlPlane.EKSName, "portworx-cluster" ] ]
         NodeGroupIAMRole: !GetAtt IamStack.Outputs.NodeInstanceRoleName
+        QSS3BucketName: !Ref QSS3BucketName
+        QSS3KeyPrefix: !Ref QSS3KeyPrefix
   BastionStack:
     DependsOn: NodeGroupStack
     Type: AWS::CloudFormation::Stack

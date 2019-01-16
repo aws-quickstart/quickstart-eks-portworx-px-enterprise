@@ -1,0 +1,49 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "deploy portworx role"
+Parameters:
+  KubeManifestLambdaArn:
+    Type: String
+  HelmLambdaArn:
+    Type: String
+  KubeConfigPath:
+    Type: String
+  KubeConfigKmsContext:
+    Type: String
+    Default: "EKSQuickStart"
+Resources:
+  # This resource creates a ConfigMap in the target cluster. It retrieves and decrypts a kms encrypted
+  # kubernetes config file, which is automatically created when customers deploy an EKS cluster with the quickstart,
+  # for bring-your-own-cluster the customer must encrypt and upload a config file prior to launching the stack.
+  #
+  # The "Manifest" property is an exact representation of a regular kubernetes resource manifest, on stack create
+  # `kubectl create --save-config` is called, on stack update `kubectl apply` and on stack delete `kubectl delete`
+  #
+  # The following elements are available to be used in other cloudformation resources using !GetAtt:
+  # name, namespace, resourceVersion, selfLink, uid
+  KubeManifestPortworxRole:
+    Type: "Custom::KubeManifest"
+    Version: '1.0'
+    Properties:
+      # The lambda function that executes the manifest against the cluster. This is created in one of the parent stacks
+      ServiceToken: !Ref KubeManifestLambdaArn
+      # S3 path to the encrypted config file eg. s3://my-bucket/kube/config.encrypted
+      KubeConfigPath: !Ref KubeConfigPath
+      # context for KMS to use when decrypting the file
+      KubeConfigKmsContext: !Ref KubeConfigKmsContext
+      # Kubernetes manifest
+      Manifest:
+        kind: Role
+        apiVersion: rbac.authorization.k8s.io/v1
+        metadata:
+          name: px-role
+          namespace: portworx
+        rules:
+        - apiGroups: [""]
+          resources: ["secrets"]
+          verbs: ["get", "list", "create", "update", "patch"]
+Outputs:
+  # Examples for using the outputs of the KubeManifestExample resource
+  ExampleUid:
+    Value: !GetAtt KubeManifestPortworxRole.uid
+  ExampleSelfLink:
+    Value: !Ref KubeManifestPortworxRole

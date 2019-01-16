@@ -1,0 +1,164 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "deploy portworx DaemonSet"
+Parameters:
+  KubeManifestLambdaArn:
+    Type: String
+  HelmLambdaArn:
+    Type: String
+  KubeConfigPath:
+    Type: String
+  KubeConfigKmsContext:
+    Type: String
+    Default: "EKSQuickStart"
+  PortworxClusterName:
+    Type: String
+    Default: "my-px-cluster"
+  VolumeTemplateString:
+    Type: String
+    Default: "type=gp2,size=100"
+Resources:
+  # This resource creates a ConfigMap in the target cluster. It retrieves and decrypts a kms encrypted
+  # kubernetes config file, which is automatically created when customers deploy an EKS cluster with the quickstart,
+  # for bring-your-own-cluster the customer must encrypt and upload a config file prior to launching the stack.
+  #
+  # The "Manifest" property is an exact representation of a regular kubernetes resource manifest, on stack create
+  # `kubectl create --save-config` is called, on stack update `kubectl apply` and on stack delete `kubectl delete`
+  #
+  # The following elements are available to be used in other cloudformation resources using !GetAtt:
+  # name, namespace, resourceVersion, selfLink, uid
+  KubeManifestPortworxDaemonSet:
+    Type: "Custom::KubeManifest"
+    Version: '1.0'
+    Properties:
+      # The lambda function that executes the manifest against the cluster. This is created in one of the parent stacks
+      ServiceToken: !Ref KubeManifestLambdaArn
+      # S3 path to the encrypted config file eg. s3://my-bucket/kube/config.encrypted
+      KubeConfigPath: !Ref KubeConfigPath
+      # context for KMS to use when decrypting the file
+      KubeConfigKmsContext: !Ref KubeConfigKmsContext
+      # Cluster name to use in daemonset
+      PortworxClusterName: !Ref PxClusterName
+      # Kubernetes manifest
+      Manifest:
+        apiVersion: extensions/v1beta1
+        kind: DaemonSet
+        metadata:
+          name: portworx
+          namespace: kube-system
+          annotations:
+            portworx.com/install-source: "https://install.portworx.com/?kbver=1.12.0&k=etcd%%3Ahttp%%3A%%2F%%2Fpx-etcd1.portworx.com%%3A2379%%2Cetcd%%3Ahttp%%3A%%2F%%2Fpx-etcd2.portworx.com%%3A2379%%2Cetcd%%3Ahttp%%3A%%2F%%2Fpx-etcd3.portworx.com%%3A2379&s=%%2Fdev%%2Fxvdf&j=auto&c=px-cluster-bd80474b-c74a-48dd-937c-9b9c9d795261&stork=true&lh=true&st=k8s"
+        spec:
+          minReadySeconds: 0
+          updateStrategy:
+            type: RollingUpdate
+            rollingUpdate:
+              maxUnavailable: 1
+          template:
+            metadata:
+              labels:
+                name: portworx
+            spec:
+              affinity:
+                nodeAffinity:
+                  requiredDuringSchedulingIgnoredDuringExecution:
+                    nodeSelectorTerms:
+                    - matchExpressions:
+                      - key: px/enabled
+                        operator: NotIn
+                        values:
+                        - "\"false\"" ## BROKEN UNTIL CFN TEAM FIX TYPES
+                      - key: node-role.kubernetes.io/master
+                        operator: DoesNotExist
+              hostNetwork: true
+              hostPID: false
+              containers:
+                - name: portworx
+                  image: portworx/oci-monitor:2.0.0
+                  imagePullPolicy: Always
+                  args:
+                    ["-b", "-c", !Ref PortworxClusterName, 
+                     "-s", !Ref VolumeTemplateString, 
+                     "-secret_type", "k8s", 
+                     "-x", "kubernetes"]
+                  env:
+                    - name: "PX_TEMPLATE_VERSION"
+                      value: "v4"
+                    
+                  livenessProbe:
+                    periodSeconds: 30
+                    initialDelaySeconds: 840 # allow image pull in slow networks
+                    httpGet:
+                      host: 127.0.0.1
+                      path: /status
+                      port: 9001
+                  readinessProbe:
+                    periodSeconds: 10
+                    httpGet:
+                      host: 127.0.0.1
+                      path: /health
+                      port: 9015
+                  terminationMessagePath: "/tmp/px-termination-log"
+                  securityContext:
+                    privileged: true
+                  volumeMounts:
+                    - name: dockersock
+                      mountPath: /var/run/docker.sock
+                    - name: containerdsock
+                      mountPath: /run/containerd
+                    - name: etcpwx
+                      mountPath: /etc/pwx
+                    - name: optpwx
+                      mountPath: /opt/pwx
+                    - name: hostprocmount
+                      mountPath: /host_proc
+                    - name: sysdmount
+                      mountPath: /etc/systemd/system
+                    - name: diagsdump
+                      mountPath: /var/cores
+                    - name: journalmount1
+                      mountPath: /var/run/log
+                      readOnly: true
+                    - name: journalmount2
+                      mountPath: /var/log
+                      readOnly: true
+                    - name: dbusmount
+                      mountPath: /var/run/dbus
+              restartPolicy: Always
+              serviceAccountName: px-account
+              volumes:
+                - name: dockersock
+                  hostPath:
+                    path: /var/run/docker.sock
+                - name: containerdsock
+                  hostPath:
+                    path: /run/containerd
+                - name: etcpwx
+                  hostPath:
+                    path: /etc/pwx
+                - name: optpwx
+                  hostPath:
+                    path: /opt/pwx
+                - name: hostprocmount
+                  hostPath:
+                    path: /proc/
+                - name: sysdmount
+                  hostPath:
+                    path: /etc/systemd/system
+                - name: diagsdump
+                  hostPath:
+                    path: /var/cores
+                - name: journalmount1
+                  hostPath:
+                    path: /var/run/log
+                - name: journalmount2
+                  hostPath:
+                    path: /var/log
+                - name: dbusmount
+                  hostPath:
+                    path: /var/run/dbus
+Outputs:
+  # Examples for using the outputs of the KubeManifestExample resource
+  DaemonsetUid:
+    Value: !GetAtt KubeManifestPortworxDaemonSet.uid
+  DaemonsetSelfLink:
+    Value: !Ref KubeManifestPortworxDaemonSet

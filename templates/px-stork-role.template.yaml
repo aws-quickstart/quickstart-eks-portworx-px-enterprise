@@ -1,0 +1,93 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "deploy stork role"
+Parameters:
+  KubeManifestLambdaArn:
+    Type: String
+  HelmLambdaArn:
+    Type: String
+  KubeConfigPath:
+    Type: String
+  KubeConfigKmsContext:
+    Type: String
+    Default: "EKSQuickStart"
+Resources:
+  # This resource creates a ConfigMap in the target cluster. It retrieves and decrypts a kms encrypted
+  # kubernetes config file, which is automatically created when customers deploy an EKS cluster with the quickstart,
+  # for bring-your-own-cluster the customer must encrypt and upload a config file prior to launching the stack.
+  #
+  # The "Manifest" property is an exact representation of a regular kubernetes resource manifest, on stack create
+  # `kubectl create --save-config` is called, on stack update `kubectl apply` and on stack delete `kubectl delete`
+  #
+  # The following elements are available to be used in other cloudformation resources using !GetAtt:
+  # name, namespace, resourceVersion, selfLink, uid
+  KubeManifestPortworxStorkClusterRole:
+    Type: "Custom::KubeManifest"
+    Version: '1.0'
+    Properties:
+      # The lambda function that executes the manifest against the cluster. This is created in one of the parent stacks
+      ServiceToken: !Ref KubeManifestLambdaArn
+      # S3 path to the encrypted config file eg. s3://my-bucket/kube/config.encrypted
+      KubeConfigPath: !Ref KubeConfigPath
+      # context for KMS to use when decrypting the file
+      KubeConfigKmsContext: !Ref KubeConfigKmsContext
+      # Kubernetes manifest
+      Manifest:
+        kind: ClusterRole
+        apiVersion: rbac.authorization.k8s.io/v1
+        metadata:
+           name: stork-role
+        rules:
+          - apiGroups: [""]
+            resources: ["pods", "pods/exec"]
+            verbs: ["get", "list", "delete", "create"]
+          - apiGroups: [""]
+            resources: ["persistentvolumes"]
+            verbs: ["get", "list", "watch", "create", "delete"]
+          - apiGroups: [""]
+            resources: ["persistentvolumeclaims"]
+            verbs: ["get", "list", "watch", "update"]
+          - apiGroups: ["storage.k8s.io"]
+            resources: ["storageclasses"]
+            verbs: ["get", "list", "watch"]
+          - apiGroups: [""]
+            resources: ["events"]
+            verbs: ["list", "watch", "create", "update", "patch"]
+          - apiGroups: ["stork.libopenstorage.org"]
+            resources: ["rules"]
+            verbs: ["get", "list"]
+          - apiGroups: ["stork.libopenstorage.org"]
+            resources: ["migrations", "clusterpairs"]
+            verbs: ["get", "list", "watch", "update", "patch"]
+          - apiGroups: ["apiextensions.k8s.io"]
+            resources: ["customresourcedefinitions"]
+            verbs: ["create", "get"]
+          - apiGroups: ["volumesnapshot.external-storage.k8s.io"]
+            resources: ["volumesnapshots"]
+            verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+          - apiGroups: ["volumesnapshot.external-storage.k8s.io"]
+            resources: ["volumesnapshotdatas"]
+            verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+          - apiGroups: [""]
+            resources: ["configmaps"]
+            verbs: ["get", "create", "update"]
+          - apiGroups: [""]
+            resources: ["services"]
+            verbs: ["get"]
+          - apiGroups: [""]
+            resources: ["nodes"]
+            verbs: ["get", "list", "watch"]
+          - apiGroups: ["*"]
+            resources: ["deployments", "deployments/extensions"]
+            verbs: ["list", "get", "watch", "patch", "update", "initialize"]
+          - apiGroups: ["*"]
+            resources: ["statefulsets", "statefulsets/extensions"]
+            verbs: ["list", "get", "watch", "patch", "update", "initialize"]
+          - apiGroups: ["*"]
+            resources: ["*"]
+            verbs: ["list", "get"]
+Outputs:
+  # Examples for using the outputs of the KubeManifestExample resource
+  ExampleUid:
+    Value: !GetAtt KubeManifestPortworxStorkClusterRole.uid
+  ExampleSelfLink:
+    Value: !Ref KubeManifestPortworxStorkClusterRole

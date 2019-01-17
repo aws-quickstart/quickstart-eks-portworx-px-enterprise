@@ -8,6 +8,9 @@ Parameters:
   KubeConfigKmsContext:
     Type: String
     Default: "EKSQuickStart"
+  KubernetesEKSVersion:
+    Type: String
+    Default: "v1.11.0"
 Resources:
   # This resource creates a ConfigMap in the target cluster. It retrieves and decrypts a kms encrypted
   # kubernetes config file, which is automatically created when customers deploy an EKS cluster with the quickstart,
@@ -28,6 +31,8 @@ Resources:
       KubeConfigPath: !Ref KubeConfigPath
       # context for KMS to use when decrypting the file
       KubeConfigKmsContext: !Ref KubeConfigKmsContext
+      # k8s version
+      KubernetesEKSVersion: !Ref KubernetesEKSVersion
       # Kubernetes manifest
       Manifest:
         apiVersion: apps/v1beta1
@@ -57,7 +62,7 @@ Resources:
                 - --policy-configmap=stork-config
                 - --policy-configmap-namespace=kube-system
                 - --lock-object-name=stork-scheduler
-                image: gcr.io/google_containers/kube-scheduler-amd64:v1.12.0
+                image: !Join [ ":", [ "gcr.io/google_containers/kube-scheduler-amd64", !Ref KubernetesEKSVersion] ]
                 livenessProbe:
                   httpGet:
                     path: /healthz

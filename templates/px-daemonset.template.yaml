@@ -35,7 +35,7 @@ Resources:
       # context for KMS to use when decrypting the file
       KubeConfigKmsContext: !Ref KubeConfigKmsContext
       # Cluster name to use in daemonset
-      PortworxClusterName: !Ref PxClusterName
+      PortworxClusterName: !Ref PortworxClusterName
       # Kubernetes manifest
       Manifest:
         apiVersion: extensions/v1beta1

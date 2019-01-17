@@ -18,6 +18,15 @@ Parameters:
     Type: String
   QSS3KeyPrefix:
     Type: String
+  KubernetesEKSVersion:
+    Type: String
+    Default: "v1.10.3"
+  PortworxVersion:
+    Type: String
+    Default: "2.0.1"
+  LightHouseVersion:
+    Type: String
+    Default: "2.0.1"
 Resources:
   PortworxNamespaceStack:
     Type: AWS::CloudFormation::Stack
@@ -37,6 +46,7 @@ Resources:
         KubeConfigPath: !Ref KubeConfigPath
         KubeConfigKmsContext: !Ref KubeConfigKmsContext
         PortworxClusterName: !Ref PortworxClusterName
+        PortworxVersion: !Ref PortworxVersion
   PXServiceAccountStack:
     DependsOn: PortworxNamespaceStack
     Type: AWS::CloudFormation::Stack
@@ -64,6 +74,7 @@ Resources:
         KubeManifestLambdaArn: !Ref KubeManifestLambdaArn
         KubeConfigPath: !Ref KubeConfigPath
         KubeConfigKmsContext: !Ref KubeConfigKmsContext
+        LightHouseVersion: !Ref LightHouseVersion
   PXLighthouseRoleBindingStack:
     DependsOn: PortworxNamespaceStack
     Type: AWS::CloudFormation::Stack
@@ -262,6 +273,7 @@ Resources:
         KubeManifestLambdaArn: !Ref KubeManifestLambdaArn
         KubeConfigPath: !Ref KubeConfigPath
         KubeConfigKmsContext: !Ref KubeConfigKmsContext
+        KubernetesEKSVersion: !Ref KubernetesEKSVersion
   PXPvcControllerRoleStack:
     DependsOn: PortworxNamespaceStack
     Type: AWS::CloudFormation::Stack

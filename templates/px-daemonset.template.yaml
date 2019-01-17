@@ -14,6 +14,9 @@ Parameters:
   VolumeTemplateString:
     Type: String
     Default: "type=gp2,size=100"
+  PortworxVersion:
+    Type: String
+    Default: "2.0.1"
 Resources:
   # This resource creates a ConfigMap in the target cluster. It retrieves and decrypts a kms encrypted
   # kubernetes config file, which is automatically created when customers deploy an EKS cluster with the quickstart,
@@ -36,6 +39,8 @@ Resources:
       KubeConfigKmsContext: !Ref KubeConfigKmsContext
       # Cluster name to use in daemonset
       PortworxClusterName: !Ref PortworxClusterName
+      # Portworx Version
+      PortworxVersion: !Ref PortworxVersion
       # Kubernetes manifest
       Manifest:
         apiVersion: extensions/v1beta1
@@ -71,7 +76,7 @@ Resources:
               hostPID: false
               containers:
                 - name: portworx
-                  image: portworx/oci-monitor:2.0.0
+                  image: !Join [ ":", [ "portworx/oci-monitor", !Ref PortworxVersion] ]
                   imagePullPolicy: Always
                   args:
                     ["-b", "-c", !Ref PortworxClusterName, 

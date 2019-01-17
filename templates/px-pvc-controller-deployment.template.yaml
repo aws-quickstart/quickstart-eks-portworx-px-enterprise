@@ -8,6 +8,9 @@ Parameters:
   KubeConfigKmsContext:
     Type: String
     Default: "EKSQuickStart"
+  KubernetesEKSVersion:
+    Type: String
+    Default: "v1.10.3"
 Resources:
   # This resource creates a ConfigMap in the target cluster. It retrieves and decrypts a kms encrypted
   # kubernetes config file, which is automatically created when customers deploy an EKS cluster with the quickstart,
@@ -28,6 +31,8 @@ Resources:
       KubeConfigPath: !Ref KubeConfigPath
       # context for KMS to use when decrypting the file
       KubeConfigKmsContext: !Ref KubeConfigKmsContext
+      # k8s version
+      KubernetesEKSVersion: !Ref KubernetesEKSVersion
       # Kubernetes manifest
       Manifest:
         apiVersion: extensions/v1beta1
@@ -62,7 +67,7 @@ Resources:
                 - --controllers=persistentvolume-binder
                 - --use-service-account-credentials=true
                 - --leader-elect-resource-lock=configmaps
-                image: gcr.io/google_containers/kube-controller-manager-amd64:v1.10.3
+                image: !Join [ ":", [ "gcr.io/google_containers/kube-controller-manager-amd64", !Ref KubernetesEKSVersion] ]
                 livenessProbe:
                   failureThreshold: 8
                   httpGet:

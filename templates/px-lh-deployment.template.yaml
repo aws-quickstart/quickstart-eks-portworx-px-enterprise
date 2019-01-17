@@ -8,6 +8,9 @@ Parameters:
   KubeConfigKmsContext:
     Type: String
     Default: "EKSQuickStart"
+  LightHouseVersion:
+    Type: String
+    Default: "2.0.1"
 Resources:
   # This resource creates a ConfigMap in the target cluster. It retrieves and decrypts a kms encrypted
   # kubernetes config file, which is automatically created when customers deploy an EKS cluster with the quickstart,
@@ -28,6 +31,8 @@ Resources:
       KubeConfigPath: !Ref KubeConfigPath
       # context for KMS to use when decrypting the file
       KubeConfigKmsContext: !Ref KubeConfigKmsContext
+      # Version of the UI
+      LightHouseVersion: !Ref LightHouseVersion
       # Kubernetes manifest
       Manifest:
         apiVersion: apps/v1beta2
@@ -63,7 +68,7 @@ Resources:
                   mountPath: /config/lh
               containers:
               - name: px-lighthouse
-                image: portworx/px-lighthouse:2.0.0
+                image: !Join [ ":", [ "portworx/px-lighthouse", !Ref LightHouseVersion ] ]
                 imagePullPolicy: Always
                 ports:
                 - containerPort: 80

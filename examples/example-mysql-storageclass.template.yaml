@@ -12,7 +12,7 @@ Parameters:
     Default: "EKSQuickStart"
   PortworxReplicationLevel:
     Type: String
-    Default: "2"
+    Default: "3"
   PortworxSnapshotSchedule:
     Type: String
     Default: periodic=60,10
@@ -53,7 +53,9 @@ Resources:
             name: mysql-tester-class
         provisioner: kubernetes.io/portworx-volume
         parameters:
-           repl: !Sub '${PortworxReplicationLevel}'
+           #repl: !Sub '${PortworxReplicationLevel}' # Broken, gets converted from "2" to 2 and Error from server (BadRequest): error when creating "sc.yaml": StorageClass in version "v1beta1" cannot be handled as a StorageClass: v1beta1.StorageClass.Provisioner: Parameters: ReadString: expects " or n, but found 2, error found in #10 byte of ...|","repl":2,"snap_sch|..., bigger context ...|pace":""},"parameters":{"io_profile":"db","repl":2,"snap_schedule":"periodic=60,10"},"provisioner":"|...
+           #repl: !Sub ${PortworxReplicationLevel} # Broken, gets converted from "2" to 2 and Error from server (BadRequest): error when creating "sc.yaml": StorageClass in version "v1beta1" cannot be handled as a StorageClass: v1beta1.StorageClass.Provisioner: Parameters: ReadString: expects " or n, but found 2, error found in #10 byte of ...|","repl":2,"snap_sch|..., bigger context ...|pace":""},"parameters":{"io_profile":"db","repl":2,"snap_schedule":"periodic=60,10"},"provisioner":"|...
+           repl: !Sub '"${PortworxReplicationLevel}"'
            io_profile: !Sub '${PortworxIoProfile}'
            snap_schedule: !Sub '${PortworxSnapshotSchedule}'
 Outputs:

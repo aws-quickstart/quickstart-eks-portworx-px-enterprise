@@ -69,6 +69,7 @@ Resources:
                       - key: px/enabled
                         operator: NotIn
                         values:
+                        #- "false" # BROKEN Failed to create resource. Error from server (BadRequest): error when creating "/tmp/manifest.json": DaemonSet in version "v1beta1" cannot be handled as a DaemonSet: v1beta1.DaemonSet.Spec: v1beta1.DaemonSetSpec.Template: v1.PodTemplateSpec.Spec: v1.PodSpec.Affinity: v1.Affinity.NodeAffinity: v1.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution: v1.NodeSelector.NodeSelectorTerms: []v1.NodeSelectorTerm: v1.NodeSelectorTerm.MatchExpressions: []v1.NodeSelectorRequirement: v1.NodeSelectorRequirement.Values: []string: ReadString: expects " or n, but found f, error found in #10 byte of ...|values":[false]},{"k|..., bigger context ...|{"key":"px/enabled","operator":"NotIn","values":[false]},{"key":"node-role.kubernetes.io/master","op|... 
                         - "\"false\"" ## BROKEN converts to '"false"'
                       - key: node-role.kubernetes.io/master
                         operator: DoesNotExist

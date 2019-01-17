@@ -69,7 +69,7 @@ Resources:
                       - key: px/enabled
                         operator: NotIn
                         values:
-                        - "\"false\"" ## BROKEN UNTIL CFN TEAM FIX TYPES
+                        - "\"false\"" ## BROKEN converts to '"false"'
                       - key: node-role.kubernetes.io/master
                         operator: DoesNotExist
               hostNetwork: true

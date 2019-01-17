@@ -1,0 +1,93 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Deploys MySQL using Portworx Volumes
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: KubeManifestConfig
+      Parameters:
+      - KubeManifestLambdaArn
+      - HelmLambdaArn
+      - KubeConfigPath
+      - KubeConfigKmsContext
+    - Label:
+        default: AWS Quick Start Configuration
+      Parameters:
+      - QSS3BucketName
+      - QSS3KeyPrefix
+    ParameterLabels:
+      KubeManifestLambdaArn:
+        default: The KubeManifest Lambda Arn used to interact with the EKS Cluster
+      HelmLambdaArn:
+        default: The Helm Lambda Arn used to interact with the EKS Cluster
+      KubeConfigPath:
+        default: The s3 path to the KubeConfig.
+      KubeConfigKmsContext:
+        default: The KMS context used to access the KubeConfig
+      QSS3BucketName:
+        default: Quick Start S3 Bucket Name
+      QSS3KeyPrefix:
+        default: Quick Start S3 Key Prefix
+Parameters:
+  KubeManifestLambdaArn:
+    Description: The AWS kubectl Lamnda Arn used to interact with the EKS Cluster
+    Type: String
+  HelmLambdaArn:
+    Description: The Helm Lambda Arn used to interact with the EKS Cluster
+    Type: String
+  KubeConfigPath:
+    Description: The s3 path to the KubeConfig.
+    Type: String
+  KubeConfigKmsContext:
+    Description: The KMS context used to access the KubeConfig.
+    Type: String
+    Default: "EKSQuickStart"
+  QSS3BucketName:
+    AllowedPattern: ^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$
+    ConstraintDescription: Quick Start bucket name can include numbers, lowercase
+      letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen
+      (-).
+    Default: quickstart-portworx-examples
+    Description: S3 bucket name for the Quick Start assets. This string can include
+      numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start
+      or end with a hyphen (-).
+    Type: String
+  QSS3KeyPrefix:
+    AllowedPattern: ^[0-9a-zA-Z-/]*$
+    ConstraintDescription: Quick Start key prefix can include numbers, lowercase letters,
+      uppercase letters, hyphens (-), and forward slash (/).
+    Default: examples/
+    Description: S3 key prefix for the Quick Start assets. Quick Start key prefix
+      can include numbers, lowercase letters, uppercase letters, hyphens (-), and
+      forward slash (/).
+    Type: String
+Resources:
+  MySQLStorageClassStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}example-mysql-storageclass.template.yaml'
+      Parameters:
+        KubeManifestLambdaArn: !Ref KubeManifestLambdaArn
+        KubeConfigPath: !Ref KubeConfigPath
+        HelmLambdaArn: !Ref HelmLambdaArn
+  MySQLPVCStack:
+    DependsOn: MySQLStorageClassStack
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}example-mysql-pvc.template.yaml'
+      Parameters:
+        KubeManifestLambdaArn: !Ref KubeManifestLambdaArn
+        KubeConfigPath: !Ref KubeConfigPath
+        HelmLambdaArn: !Ref HelmLambdaArn
+  MySQLDeploymentStack:
+    DependsOn: MySQLPVCStack
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}example-mysql-deployment.template.yaml'
+      Parameters:
+        KubeManifestLambdaArn: !Ref KubeManifestLambdaArn
+        KubeConfigPath: !Ref KubeConfigPath
+        HelmLambdaArn: !Ref HelmLambdaArn
+Outputs:
+  MySQLDeploymentUid:
+    Value: !GetAtt MySQLDeploymentStack.Outputs.MySQLDeploymentUid

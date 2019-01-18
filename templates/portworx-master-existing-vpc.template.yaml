@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Deploys Portworx Enterprise into a new EKS cluster in an existing VPC (qs-1p7nkdm55)
+Description: Deploys an EKS cluster in a new VPC (qs-1p7nknoht)
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
@@ -81,6 +81,13 @@ Parameters:
     - t2.large
     - t2.xlarge
     - t2.2xlarge
+    - t3.nano
+    - t3.micro
+    - t3.small
+    - t3.medium
+    - t3.large
+    - t3.xlarge
+    - t3.2xlarge
     - m3.medium
     - m3.large
     - m3.xlarge
@@ -131,6 +138,24 @@ Parameters:
     - p3.2xlarge
     - p3.8xlarge
     - p3.16xlarge
+    - r5.large
+    - r5.xlarge
+    - r5.2xlarge
+    - r5.4xlarge
+    - r5.12xlarge
+    - r5.24xlarge
+    - r5d.large
+    - r5d.xlarge
+    - r5d.2xlarge
+    - r5d.4xlarge
+    - r5d.12xlarge
+    - r5d.24xlarge
+    - z1d.large
+    - z1d.xlarge
+    - z1d.2xlarge
+    - z1d.3xlarge
+    - z1d.6xlarge
+    - z1d.12xlarge
     ConstraintDescription: Must be a valid EC2 instance type
     Description: Type of EC2 instance for the Node instances
     Type: String
@@ -163,13 +188,35 @@ Parameters:
     Type: "AWS::EC2::Subnet::Id"
   PrivateSubnet3ID:
     Type: "AWS::EC2::Subnet::Id"
-Conditions:
-  CreateLambdaZipsBucket: !Equals
-  - !Ref 'LambdaZipsBucketName'
-  - ''
+  KubernetesVersion:
+    Type: String
+    AllowedValues: [ "1.11", "1.10" ]
+    Default: "1.11"
 Resources:
+  EKSStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}submodules/quickstart-aws-eks/templates/aws-eks.template.yaml'
+      Parameters:
+        PublicSubnet1ID: !Ref PublicSubnet1ID
+        PublicSubnet2ID: !Ref PublicSubnet2ID
+        KeyPairName: !Ref KeyPairName
+        QSS3BucketName: !Ref QSS3BucketName
+        QSS3KeyPrefix: !Sub "${QSS3KeyPrefix}submodules/quickstart-aws-eks/"
+        PrivateSubnet1ID: !Ref PrivateSubnet1ID
+        PrivateSubnet2ID: !Ref PrivateSubnet2ID
+        PrivateSubnet3ID: !Ref PrivateSubnet3ID
+        NumberOfNodes: !Ref NumberOfNodes
+        NodeGroupName: !Ref NodeGroupName
+        NodeVolumeSize: !Ref NodeVolumeSize
+        LambdaZipsBucketName: !Ref LambdaZipsBucketName
+        NodeInstanceType: !Ref NodeInstanceType
+        RemoteAccessCIDR: !Ref RemoteAccessCIDR
+        AdditionalEKSAdminArns: !Join [ ",", !Ref AdditionalEKSAdminArns ]
+        VPCID: !Ref VPCID
+        KubernetesVersion: !Ref KubernetesVersion
   PortworxStack:
-    DependsOn: NodeGroupStack
+    DependsOn: EKSStack
     Type: "AWS::CloudFormation::Stack"
     Properties:
       TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/portworx.template.yaml'
@@ -179,145 +226,11 @@ Resources:
         TillerInstallLambdaArn: !GetAtt FunctionStack.Outputs.TillerInstallLambdaArn
         KubeManifestLambdaArn: !GetAtt FunctionStack.Outputs.KubeManifestLambdaArn
         PortworxClusterName: !Join [ "-", [ !GetAtt EKSControlPlane.EKSName, "portworx-cluster" ] ]
-        NodeGroupIAMRole: !GetAtt IamStack.Outputs.NodeInstanceRoleName
         QSS3BucketName: !Ref QSS3BucketName
         QSS3KeyPrefix: !Ref QSS3KeyPrefix
-  BastionStack:
-    DependsOn: NodeGroupStack
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}submodules/quickstart-linux-bastion/templates/linux-bastion.template'
-      Parameters:
-        VPCID: !Ref VPCID
-        PublicSubnet1ID: !Ref PublicSubnet1ID
-        PublicSubnet2ID: !Ref PublicSubnet2ID
-        KeyPairName: !Ref KeyPairName
-        QSS3BucketName: !Ref QSS3BucketName
-        QSS3KeyPrefix: !Sub '${QSS3KeyPrefix}submodules/quickstart-linux-bastion/'
-        RemoteAccessCIDR: !Ref RemoteAccessCIDR
-        AlternativeInitializationScript: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}scripts/bastion_bootstrap.sh'
-        AlternativeIAMRole: !GetAtt IamStack.Outputs.BastionRole
-        EnvironmentVariables: !Sub >
-          K8S_ROLE_ARN=${IamStack.Outputs.ControlPlaneProvisionRoleArn},
-          K8S_CLUSTER_NAME=${EKSControlPlane.EKSName},
-          K8S_CA_DATA=${EKSControlPlane.CAData},
-          K8S_ENDPOINT=${EKSControlPlane.EKSEndpoint}
-  NodeGroupStack:
-    Type: "AWS::CloudFormation::Stack"
-    Properties:
-      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}submodules/quickstart-aws-eks/templates/aws-eks-nodegroup.template.yaml'
-      Parameters:
-        KeyPairName: !Ref 'KeyPairName'
-        PrivateSubnet1ID: !Ref PrivateSubnet1ID
-        PrivateSubnet2ID: !Ref PrivateSubnet2ID
-        PrivateSubnet3ID: !Ref PrivateSubnet3ID
-        VPCID: !Ref VPCID
-        NodeInstanceType: !Ref NodeInstanceType
-        NumberOfNodes: !Ref NumberOfNodes
-        NodeGroupName: !Ref NodeGroupName
-        NodeVolumeSize: !Ref NodeVolumeSize
-        EKSControlPlane: !GetAtt EKSControlPlane.EKSName
-        ControlPlaneSecurityGroup: !Ref ControlPlaneSecurityGroup
-        NodeInstanceProfile: !GetAtt IamStack.Outputs.NodeInstanceProfile
-  IamStack:
-    Type: "AWS::CloudFormation::Stack"
-    Properties:
-      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}submodules/quickstart-aws-eks/templates/aws-eks-iam.template.yaml'
-      Parameters:
-        LambdaZipsBucketName: !If [ CreateLambdaZipsBucket, !Ref LambdaZipsBucket, !Ref LambdaZipsBucketName ]
-        DeleteLambdaZipsBucketContents: !If [ CreateLambdaZipsBucket, "True", "False" ]
-        QSS3BucketName: !Ref QSS3BucketName
-        QSS3KeyPrefix: !Sub '${QSS3KeyPrefix}submodules/quickstart-aws-eks/'
-        KubeConfigBucket: !Ref KubeConfigBucket
-  FunctionStack:
-    Type: "AWS::CloudFormation::Stack"
-    Properties:
-      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}submodules/quickstart-aws-eks/templates/aws-eks-functions.template.yaml'
-      Parameters:
-        LambdaZipsBucketName: !If [ CreateLambdaZipsBucket, !Ref LambdaZipsBucket, !Ref LambdaZipsBucketName ]
-        QSS3BucketName: !Ref QSS3BucketName
-        QSS3KeyPrefix: !Sub '${QSS3KeyPrefix}submodules/quickstart-aws-eks/'
-        CopyZipsRoleArn: !GetAtt IamStack.Outputs.CopyZipsRoleArn
-        EKSProvisionRoleArn: !GetAtt IamStack.Outputs.ControlPlaneProvisionRoleArn
-        ControlPlaneSecurityGroup: !Ref ControlPlaneSecurityGroup
-        EKSSubnetIds: !Sub "${PrivateSubnet1ID},${PrivateSubnet2ID},${PrivateSubnet3ID}"
-        DeleteBucketContentsRoleArn: !GetAtt IamStack.Outputs.DeleteBucketContentsRoleArn
-        QuickStartStackMakerRoleArn: !GetAtt IamStack.Outputs.QuickStartStackMakerRoleArn
-        LambdaCleanUpFunctionRoleArn: !GetAtt IamStack.Outputs.LambdaCleanUpFunctionRoleArn
-        DeleteLambdaZipsBucketContents: !If [ CreateLambdaZipsBucket, "True", "False" ]
-        VPCID: !Ref VPCID
-        KubeConfigUploadRoleArn: !GetAtt IamStack.Outputs.KubeConfigUploadRoleArn
-  LambdaZipsBucket:
-    Type: AWS::S3::Bucket
-    Condition: CreateLambdaZipsBucket
-  DeleteBucketContents:
-    Condition: CreateLambdaZipsBucket
-    Type: Custom::DeleteBucketContents
-    Version: '1.0'
-    Properties:
-      ServiceToken: !GetAtt 'FunctionStack.Outputs.DeleteBucketContentsLambdaArn'
-      OutputBucket: !Ref 'LambdaZipsBucket'
-  ControlPlaneSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: Cluster communication
-      VpcId: !Ref VPCID
-  EKSControlPlane:
-    Type: "Custom::CfnStackAssumeRole"
-    Version: '1.0'
-    Properties:
-      ServiceToken: !GetAtt FunctionStack.Outputs.QuickStartStackMakerLambdaArn
-      RoleArn: !GetAtt IamStack.Outputs.ControlPlaneProvisionRoleArn
-      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}submodules/quickstart-aws-eks/templates/aws-eks-controlplane.template.yaml'
-      ParentStackId: !Ref AWS::StackId
-      CfnParameters:
-        SecurityGroupIds: !Ref ControlPlaneSecurityGroup
-        SubnetIds: !Join [",", [ !Ref PrivateSubnet1ID, !Ref PrivateSubnet2ID, !Ref PrivateSubnet3ID ]]
-        RoleArn: !GetAtt IamStack.Outputs.ControlPlaneRoleArn
-        NodeInstanceRoleArn: !GetAtt IamStack.Outputs.NodeInstanceRoleArn
-        KubeManifestLambdaArn: !GetAtt FunctionStack.Outputs.KubeManifestLambdaArn
-        KmsKeyArn: !GetAtt KmsKey.Arn
-        KubeConfigUploadRoleArn: !GetAtt IamStack.Outputs.KubeConfigUploadRoleArn
-        KubeConfigUploadLambdaArn: !GetAtt FunctionStack.Outputs.KubeConfigUploadLambdaArn
-        KubeConfigS3Bucket: !Ref KubeConfigBucket
-  KmsKey:
-    Type: "AWS::KMS::Key"
-    Properties:
-      KeyPolicy: {
-        "Version": "2012-10-17",
-        "Id": "key-default-1",
-        "Statement": [
-          {
-            "Sid": "root access",
-            "Effect": "Allow",
-            "Principal": {"AWS": !Sub "arn:aws:iam::${AWS::AccountId}:root"},
-            "Action": "kms:*",
-            "Resource": "*"
-          },
-          {
-            "Sid": "lambda encrypt",
-            "Effect": "Allow",
-            "Principal": {"AWS": !GetAtt IamStack.Outputs.KubeConfigUploadRoleArn},
-            "Action": "kms:encrypt",
-            "Resource": "*"
-          },
-          {
-            "Sid": "lambda decrypt",
-            "Effect": "Allow",
-            "Principal": {"AWS": !GetAtt IamStack.Outputs.ControlPlaneProvisionRoleArn},
-            "Action": "kms:decrypt",
-            "Resource": "*"
-          }
-        ]
-      }
-  KubeConfigBucket:
-    Type: "AWS::S3::Bucket"
+        NodeGroupIAMRole: !GetAtt EKSStack.Outputs.NodeGroupIAMRole
 Outputs:
   KubeConfigPath:
-    Value: !Sub "s3://${KubeConfigBucket}/.kube/config.enc"
-  HelmLambdaArn:
-    Value: !GetAtt FunctionStack.Outputs.HelmLambdaArn
-  KubeManifestLambdaArn:
-    Value: !GetAtt FunctionStack.Outputs.KubeManifestLambdaArn
+    Value: !GetAtt EKSStack.Outputs.KubeConfigPath
   BastionIP:
-    Value: !GetAtt BastionStack.Outputs.EIP1
+    Value: !GetAtt EKSStack.Outputs.BastionIP

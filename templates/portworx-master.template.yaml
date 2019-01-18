@@ -154,6 +154,13 @@ Parameters:
     - t2.large
     - t2.xlarge
     - t2.2xlarge
+    - t3.nano
+    - t3.micro
+    - t3.small
+    - t3.medium
+    - t3.large
+    - t3.xlarge
+    - t3.2xlarge
     - m3.medium
     - m3.large
     - m3.xlarge
@@ -204,6 +211,24 @@ Parameters:
     - p3.2xlarge
     - p3.8xlarge
     - p3.16xlarge
+    - r5.large
+    - r5.xlarge
+    - r5.2xlarge
+    - r5.4xlarge
+    - r5.12xlarge
+    - r5.24xlarge
+    - r5d.large
+    - r5d.xlarge
+    - r5d.2xlarge
+    - r5d.4xlarge
+    - r5d.12xlarge
+    - r5d.24xlarge
+    - z1d.large
+    - z1d.xlarge
+    - z1d.2xlarge
+    - z1d.3xlarge
+    - z1d.6xlarge
+    - z1d.12xlarge
     ConstraintDescription: Must be a valid EC2 instance type
     Description: Type of EC2 instance for the Node instances
     Type: String
@@ -224,6 +249,10 @@ Parameters:
         if left blank a bucket will be created.'
     Type: String
     Default: ''
+  KubernetesVersion:
+    Type: String
+    AllowedValues: [ "1.11", "1.10" ]
+    Default: "1.11"
 Resources:
   VPCStack:
     Type: AWS::CloudFormation::Stack
@@ -244,16 +273,16 @@ Resources:
         PublicSubnetTag2: !Sub "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}=owned"
         PublicSubnetTag3: "kubernetes.io/role/elb="
         VPCCIDR: !Ref 'VPCCIDR'
-  ExistingVpcMasterStack:
+  EKSStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/portworx-master-existing-vpc.template.yaml'
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}submodules/quickstart-aws-eks/templates/aws-eks.template.yaml'
       Parameters:
         PublicSubnet1ID: !GetAtt VPCStack.Outputs.PublicSubnet1ID
         PublicSubnet2ID: !GetAtt VPCStack.Outputs.PublicSubnet2ID
         KeyPairName: !Ref KeyPairName
         QSS3BucketName: !Ref QSS3BucketName
-        QSS3KeyPrefix: !Ref QSS3KeyPrefix
+        QSS3KeyPrefix: !Sub "${QSS3KeyPrefix}submodules/quickstart-aws-eks/"
         PrivateSubnet1ID: !GetAtt VPCStack.Outputs.PrivateSubnet1AID
         PrivateSubnet2ID: !GetAtt VPCStack.Outputs.PrivateSubnet2AID
         PrivateSubnet3ID: !GetAtt VPCStack.Outputs.PrivateSubnet3AID
@@ -265,12 +294,19 @@ Resources:
         RemoteAccessCIDR: !Ref RemoteAccessCIDR
         AdditionalEKSAdminArns: !Join [ ",", !Ref AdditionalEKSAdminArns ]
         VPCID: !GetAtt VPCStack.Outputs.VPCID
+        KubernetesVersion: !Ref KubernetesVersion
+  PortworxStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/portworx.template.yaml'
+      Parameters:
+        KubeManifestLambdaArn: !GetAtt EKSStack.Outputs.KubeManifestLambdaArn
+        KubeConfigPath: !GetAtt EKSStack.Outputs.KubeConfigPath
+        KubeConfigKmsContext: "EKSQuickStart"
+        KubeClusterName: !GetAtt EKSStack.Outputs.EKSClusterName
+        NodeGroupIAMRole: !GetAtt EKSStack.Outputs.NodeGroupIAMRole
 Outputs:
   KubeConfigPath:
-    Value: !GetAtt ExistingVpcMasterStack.Outputs.KubeConfigPath
-  HelmLambdaArn:
-    Value: !GetAtt ExistingVpcMasterStack.Outputs.HelmLambdaArn
-  KubeManifestLambdaArn:
-    Value: !GetAtt ExistingVpcMasterStack.Outputs.KubeManifestLambdaArn
+    Value: !GetAtt EKSStack.Outputs.KubeConfigPath
   BastionIP:
-    Value: !GetAtt ExistingVpcMasterStack.Outputs.BastionIP
+    Value: !GetAtt EKSStack.Outputs.BastionIP

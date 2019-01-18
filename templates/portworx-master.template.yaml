@@ -296,14 +296,17 @@ Resources:
         VPCID: !GetAtt VPCStack.Outputs.VPCID
         KubernetesVersion: !Ref KubernetesVersion
   PortworxStack:
+    DependsOn: EKSStack
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/portworx.template.yaml'
       Parameters:
-        KubeManifestLambdaArn: !GetAtt EKSStack.Outputs.KubeManifestLambdaArn
-        KubeConfigPath: !GetAtt EKSStack.Outputs.KubeConfigPath
+        KubeConfigPath: !Sub "s3://${KubeConfigBucket}/.kube/config.enc"
         KubeConfigKmsContext: "EKSQuickStart"
-        KubeClusterName: !GetAtt EKSStack.Outputs.EKSClusterName
+        KubeManifestLambdaArn: !GetAtt FunctionStack.Outputs.KubeManifestLambdaArn
+        PortworxClusterName: !Join [ "-", [ !GetAtt EKSStack.Outputs.EKSClusterName, "portworx-cluster" ] ]
+        QSS3BucketName: !Ref QSS3BucketName
+        QSS3KeyPrefix: !Ref QSS3KeyPrefix
         NodeGroupIAMRole: !GetAtt EKSStack.Outputs.NodeGroupIAMRole
 Outputs:
   KubeConfigPath:

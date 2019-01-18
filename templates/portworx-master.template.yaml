@@ -308,6 +308,7 @@ Resources:
         QSS3BucketName: !Ref QSS3BucketName
         QSS3KeyPrefix: !Ref QSS3KeyPrefix
         NodeGroupIAMRole: !GetAtt EKSStack.Outputs.NodeGroupIAMRole
+        KubernetesEKSVersion: !Ref KubernetesVersion
 Outputs:
   KubeConfigPath:
     Value: !GetAtt EKSStack.Outputs.KubeConfigPath

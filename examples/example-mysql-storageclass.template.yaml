@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "deploy portwox service account"
+Description: "deploy portworx storageclass for MySQL"
 Parameters:
   KubeManifestLambdaArn:
     Type: String

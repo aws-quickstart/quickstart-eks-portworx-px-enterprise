@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "deploy portworx lighthousoe role binding"
+Description: "deploy portworx lighthouse role binding"
 Parameters:
   KubeManifestLambdaArn:
     Type: String

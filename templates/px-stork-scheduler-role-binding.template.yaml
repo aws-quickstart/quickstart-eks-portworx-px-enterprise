@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "deploy storrk scheduler role binding"
+Description: "deploy stork scheduler role binding"
 Parameters:
   KubeManifestLambdaArn:
     Type: String

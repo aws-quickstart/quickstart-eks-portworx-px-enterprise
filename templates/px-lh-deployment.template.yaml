@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "deploy portworx lighthouose"
+Description: "deploy portworx lighthouse"
 Parameters:
   KubeManifestLambdaArn:
     Type: String

@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "deploy portwox service account"
+Description: "deploy portworx service account"
 Parameters:
   KubeManifestLambdaArn:
     Type: String

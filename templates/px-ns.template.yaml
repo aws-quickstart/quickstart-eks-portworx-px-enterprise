@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "deploy prtworx namespace"
+Description: "deploy portworx namespace"
 Parameters:
   KubeManifestLambdaArn:
     Type: String

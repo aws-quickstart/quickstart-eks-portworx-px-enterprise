@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "deploy portwox service account"
+Description: "deploy mysql PVC"
 Parameters:
   KubeManifestLambdaArn:
     Type: String

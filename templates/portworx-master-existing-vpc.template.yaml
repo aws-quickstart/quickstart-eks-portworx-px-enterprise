@@ -223,7 +223,7 @@ Resources:
       Parameters:
         KubeConfigPath: !Sub "s3://${KubeConfigBucket}/.kube/config.enc"
         KubeConfigKmsContext: "EKSQuickStart"
-        KubeManifestLambdaArn: !GetAtt FunctionStack.Outputs.KubeManifestLambdaArn
+        KubeManifestLambdaArn: !GetAtt EKSStack.Outputs.KubeManifestLambdaArn
         PortworxClusterName: !Join [ "-", [ !GetAtt EKSStack.Outputs.EKSClusterName, "portworx-cluster" ] ]
         QSS3BucketName: !Ref QSS3BucketName
         QSS3KeyPrefix: !Ref QSS3KeyPrefix

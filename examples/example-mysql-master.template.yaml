@@ -7,7 +7,6 @@ Metadata:
         default: KubeManifestConfig
       Parameters:
       - KubeManifestLambdaArn
-      - HelmLambdaArn
       - KubeConfigPath
       - KubeConfigKmsContext
     - Label:
@@ -18,8 +17,6 @@ Metadata:
     ParameterLabels:
       KubeManifestLambdaArn:
         default: The KubeManifest Lambda Arn used to interact with the EKS Cluster
-      HelmLambdaArn:
-        default: The Helm Lambda Arn used to interact with the EKS Cluster
       KubeConfigPath:
         default: The s3 path to the KubeConfig.
       KubeConfigKmsContext:
@@ -31,9 +28,6 @@ Metadata:
 Parameters:
   KubeManifestLambdaArn:
     Description: The AWS kubectl Lamnda Arn used to interact with the EKS Cluster
-    Type: String
-  HelmLambdaArn:
-    Description: The Helm Lambda Arn used to interact with the EKS Cluster
     Type: String
   KubeConfigPath:
     Description: The s3 path to the KubeConfig.
@@ -69,7 +63,6 @@ Resources:
       Parameters:
         KubeManifestLambdaArn: !Ref KubeManifestLambdaArn
         KubeConfigPath: !Ref KubeConfigPath
-        HelmLambdaArn: !Ref HelmLambdaArn
   MySQLPVCStack:
     DependsOn: MySQLStorageClassStack
     Type: AWS::CloudFormation::Stack
@@ -78,7 +71,6 @@ Resources:
       Parameters:
         KubeManifestLambdaArn: !Ref KubeManifestLambdaArn
         KubeConfigPath: !Ref KubeConfigPath
-        HelmLambdaArn: !Ref HelmLambdaArn
   MySQLDeploymentStack:
     DependsOn: MySQLPVCStack
     Type: AWS::CloudFormation::Stack
@@ -87,7 +79,6 @@ Resources:
       Parameters:
         KubeManifestLambdaArn: !Ref KubeManifestLambdaArn
         KubeConfigPath: !Ref KubeConfigPath
-        HelmLambdaArn: !Ref HelmLambdaArn
 Outputs:
   MySQLDeploymentUid:
     Value: !GetAtt MySQLDeploymentStack.Outputs.MySQLDeploymentUid

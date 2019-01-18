@@ -3,8 +3,6 @@ Description: Deploys Portworx Enterprise into an existing Kubernetes Cluster (qs
 Parameters:
   KubeManifestLambdaArn:
     Type: String
-  TillerInstallLambdaArn:
-    Type: String
   KubeConfigPath:
     Type: String
   KubeConfigKmsContext:

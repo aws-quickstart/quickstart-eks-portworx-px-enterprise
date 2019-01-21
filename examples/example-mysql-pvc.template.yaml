@@ -10,7 +10,7 @@ Parameters:
     Default: "EKSQuickStart"
   MySQLPVCSize:
     Type: String
-    Default: 12Gi
+    Default: "12Gi"
 Resources:
   # This resource creates a ConfigMap in the target cluster. It retrieves and decrypts a kms encrypted
   # kubernetes config file, which is automatically created when customers deploy an EKS cluster with the quickstart,
@@ -34,7 +34,7 @@ Resources:
       # Size of PVC used by MySQL
       MySQLPVCSize: !Ref MySQLPVCSize
       # Kubernetes manifest
-      Manifest:
+      Manifest: !Sub |
         kind: PersistentVolumeClaim
         apiVersion: v1
         metadata:
@@ -47,7 +47,7 @@ Resources:
              - ReadWriteOnce
            resources:
              requests:
-              storage: !Sub '${MySQLPVCSize}'
+              storage: '${MySQLPVCSize}'
 Outputs:
   # Examples for using the outputs of the KubeManifestExample resource
   MySQLPVCUid:

@@ -17,6 +17,9 @@ Parameters:
   PortworxVersion:
     Type: String
     Default: "2.0.1"
+  PortworxPxEnabledNotInValue:
+    Type: String
+    Default: "false"
 Resources:
   # This resource creates a ConfigMap in the target cluster. It retrieves and decrypts a kms encrypted
   # kubernetes config file, which is automatically created when customers deploy an EKS cluster with the quickstart,
@@ -41,8 +44,10 @@ Resources:
       PortworxClusterName: !Ref PortworxClusterName
       # Portworx Version
       PortworxVersion: !Ref PortworxVersion
+      # Portworx PxEnabledNotInValue
+      PortworxPxEnabledNotInValue: !Ref PortworxPxEnabledNotInValue
       # Kubernetes manifest
-      Manifest:
+      Manifest: !Sub |
         apiVersion: extensions/v1beta1
         kind: DaemonSet
         metadata:
@@ -69,19 +74,18 @@ Resources:
                       - key: px/enabled
                         operator: NotIn
                         values:
-                        #- "false" # BROKEN Failed to create resource. Error from server (BadRequest): error when creating "/tmp/manifest.json": DaemonSet in version "v1beta1" cannot be handled as a DaemonSet: v1beta1.DaemonSet.Spec: v1beta1.DaemonSetSpec.Template: v1.PodTemplateSpec.Spec: v1.PodSpec.Affinity: v1.Affinity.NodeAffinity: v1.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution: v1.NodeSelector.NodeSelectorTerms: []v1.NodeSelectorTerm: v1.NodeSelectorTerm.MatchExpressions: []v1.NodeSelectorRequirement: v1.NodeSelectorRequirement.Values: []string: ReadString: expects " or n, but found f, error found in #10 byte of ...|values":[false]},{"k|..., bigger context ...|{"key":"px/enabled","operator":"NotIn","values":[false]},{"key":"node-role.kubernetes.io/master","op|... 
-                        - "\"false\"" ## BROKEN converts to '"false"'
+                        - "${PortworxPxEnabledNotInValue}"
                       - key: node-role.kubernetes.io/master
                         operator: DoesNotExist
               hostNetwork: true
               hostPID: false
               containers:
                 - name: portworx
-                  image: !Join [ ":", [ "portworx/oci-monitor", !Ref PortworxVersion] ]
+                  image: "portworx/oci-monitor:${PortworxVersion}"
                   imagePullPolicy: Always
                   args:
-                    ["-b", "-c", !Ref PortworxClusterName, 
-                     "-s", !Ref VolumeTemplateString, 
+                    ["-b", "-c", "${PortworxClusterName}", 
+                     "-s", "${VolumeTemplateString}", 
                      "-secret_type", "k8s", 
                      "-x", "kubernetes"]
                   env:

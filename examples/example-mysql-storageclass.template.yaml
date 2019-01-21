@@ -13,10 +13,10 @@ Parameters:
     Default: "3"
   PortworxSnapshotSchedule:
     Type: String
-    Default: periodic=60,10
+    Default: "periodic=60,10"
   PortworxIoProfile:
     Type: String
-    Default: db
+    Default: "db"
 Resources:
   # This resource creates a ConfigMap in the target cluster. It retrieves and decrypts a kms encrypted
   # kubernetes config file, which is automatically created when customers deploy an EKS cluster with the quickstart,
@@ -44,18 +44,16 @@ Resources:
       # IO Porfile
       PortworxIoProfile: !Ref PortworxIoProfile
       # Kubernetes manifest
-      Manifest:
+      Manifest: !Sub |
         kind: StorageClass
         apiVersion: storage.k8s.io/v1beta1
         metadata:
             name: mysql-tester-class
         provisioner: kubernetes.io/portworx-volume
         parameters:
-           #repl: !Sub '${PortworxReplicationLevel}' # Broken, gets converted from "2" to 2 and Error from server (BadRequest): error when creating "sc.yaml": StorageClass in version "v1beta1" cannot be handled as a StorageClass: v1beta1.StorageClass.Provisioner: Parameters: ReadString: expects " or n, but found 2, error found in #10 byte of ...|","repl":2,"snap_sch|..., bigger context ...|pace":""},"parameters":{"io_profile":"db","repl":2,"snap_schedule":"periodic=60,10"},"provisioner":"|...
-           #repl: !Sub ${PortworxReplicationLevel} # Broken, gets converted from "2" to 2 and Error from server (BadRequest): error when creating "sc.yaml": StorageClass in version "v1beta1" cannot be handled as a StorageClass: v1beta1.StorageClass.Provisioner: Parameters: ReadString: expects " or n, but found 2, error found in #10 byte of ...|","repl":2,"snap_sch|..., bigger context ...|pace":""},"parameters":{"io_profile":"db","repl":2,"snap_schedule":"periodic=60,10"},"provisioner":"|...
-           repl: !Sub '"${PortworxReplicationLevel}"' # Broken, gets converted from "2" '"2"'
-           io_profile: !Sub '${PortworxIoProfile}'
-           snap_schedule: !Sub '${PortworxSnapshotSchedule}'
+           repl: '${PortworxReplicationLevel}'
+           io_profile: '${PortworxIoProfile}'
+           snap_schedule: '${PortworxSnapshotSchedule}'
 Outputs:
   # Examples for using the outputs of the KubeManifestExample resource
   MySQLStorageClassUid:

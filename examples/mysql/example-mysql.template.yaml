@@ -1,0 +1,189 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Deploys MySQL using Portworx Volumes
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: KubeManifestConfig
+      Parameters:
+      - KubeManifestLambdaArn
+      - KubeConfigPath
+      - KubeConfigKmsContext
+    - Label:
+        default: AWS Quick Start Configuration
+      Parameters:
+      - QSS3BucketName
+      - QSS3KeyPrefix
+    - Label:
+        default: Portworx Database Config
+      Parameters:
+      - MySQLPVCSize
+      - PortworxReplicationLevel
+      - PortworxSnapshotSchedule
+      - PortworxIoProfile
+    ParameterLabels:
+      KubeManifestLambdaArn:
+        default: The KubeManifest Lambda Arn used to interact with the EKS Cluster
+      KubeConfigPath:
+        default: The s3 path to the KubeConfig.
+      KubeConfigKmsContext:
+        default: The KMS context used to access the KubeConfig
+      QSS3BucketName:
+        default: Quick Start S3 Bucket Name
+      QSS3KeyPrefix:
+        default: Quick Start S3 Key Prefix
+      MySQLPVCSize:
+        default:  PVC Size in Gi for Portworx volume
+      PortworxReplicationLevel:
+        default:  Replication level for Portworx volume
+      PortworxSnapshotSchedule:
+        default: The snapshot schedule string for the Portworx volume
+      PortworxIoProfile:
+        default: The IO Profile for the Portworx volume
+Parameters:
+  KubeManifestLambdaArn:
+    Description: The AWS kubectl Lamnda Arn used to interact with the EKS Cluster
+    Type: String
+  KubeConfigPath:
+    Description: The s3 path to the KubeConfig.
+    Type: String
+  KubeConfigKmsContext:
+    Description: The KMS context used to access the KubeConfig.
+    Type: String
+    Default: "EKSQuickStart"
+  QSS3BucketName:
+    AllowedPattern: ^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$
+    ConstraintDescription: Quick Start bucket name can include numbers, lowercase
+      letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen
+      (-).
+    Default: quickstart-eks-portworx
+    Description: S3 bucket name for the Quick Start assets. This string can include
+      numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start
+      or end with a hyphen (-).
+    Type: String
+  QSS3KeyPrefix:
+    AllowedPattern: ^[0-9a-zA-Z-/]*$
+    ConstraintDescription: Quick Start key prefix can include numbers, lowercase letters,
+      uppercase letters, hyphens (-), and forward slash (/).
+    Default: examples/
+    Description: S3 key prefix for the Quick Start assets. Quick Start key prefix
+      can include numbers, lowercase letters, uppercase letters, hyphens (-), and
+      forward slash (/).
+    Type: String
+  MySQLPVCSize:
+    Type: String
+    Default: "12Gi"
+  PortworxReplicationLevel:
+    Type: String
+    Default: "3"
+  PortworxSnapshotSchedule:
+    Type: String
+    Default: "periodic=60,10"
+  PortworxIoProfile:
+    Type: String
+    Default: "db"
+Resources:
+  MySQLStorageClassStack:
+    Type: "Custom::KubeManifest"
+    Version: '1.0'
+    Properties:
+      # The lambda function that executes the manifest against the cluster. This is created in one of the parent stacks
+      ServiceToken: !Ref KubeManifestLambdaArn
+      # S3 path to the encrypted config file eg. s3://my-bucket/kube/config.encrypted
+      KubeConfigPath: !Ref KubeConfigPath
+      # context for KMS to use when decrypting the file
+      KubeConfigKmsContext: !Ref KubeConfigKmsContext
+      # Replication level for PVCs using this storage class
+      PortworxReplicationLevel: !Ref PortworxReplicationLevel
+      # Snapshot Schedule
+      PortworxSnapshotSchedule: !Ref PortworxSnapshotSchedule
+      # IO Porfile
+      PortworxIoProfile: !Ref PortworxIoProfile
+      # Kubernetes manifest
+      Manifest: !Sub |
+        kind: StorageClass
+        apiVersion: storage.k8s.io/v1beta1
+        metadata:
+            name: mysql-tester-class
+        provisioner: kubernetes.io/portworx-volume
+        parameters:
+           repl: '${PortworxReplicationLevel}'
+           io_profile: '${PortworxIoProfile}'
+           snap_schedule: '${PortworxSnapshotSchedule}'
+  MySQLPVCStack:
+    Type: "Custom::KubeManifest"
+    Version: '1.0'
+    Properties:
+      # The lambda function that executes the manifest against the cluster. This is created in one of the parent stacks
+      ServiceToken: !Ref KubeManifestLambdaArn
+      # S3 path to the encrypted config file eg. s3://my-bucket/kube/config.encrypted
+      KubeConfigPath: !Ref KubeConfigPath
+      # context for KMS to use when decrypting the file
+      KubeConfigKmsContext: !Ref KubeConfigKmsContext
+      # Size of PVC used by MySQL
+      MySQLPVCSize: !Ref MySQLPVCSize
+      # Kubernetes manifest
+      Manifest: !Sub |
+        kind: PersistentVolumeClaim
+        apiVersion: v1
+        metadata:
+           # Important do not change for testing
+           name: mysql-data
+           annotations:
+             volume.beta.kubernetes.io/storage-class: mysql-tester-class
+        spec:
+           accessModes:
+             - ReadWriteOnce
+           resources:
+             requests:
+              storage: '${MySQLPVCSize}'
+  MySQLDeploymentStack:
+    Type: "Custom::KubeManifest"
+    Version: '1.0'
+    Properties:
+      # The lambda function that executes the manifest against the cluster. This is created in one of the parent stacks
+      ServiceToken: !Ref KubeManifestLambdaArn
+      # S3 path to the encrypted config file eg. s3://my-bucket/kube/config.encrypted
+      KubeConfigPath: !Ref KubeConfigPath
+      # context for KMS to use when decrypting the file
+      KubeConfigKmsContext: !Ref KubeConfigKmsContext
+      # Kubernetes manifest
+      Manifest:
+        apiVersion: extensions/v1beta1
+        kind: Deployment
+        metadata:
+          name: mysql
+        spec:
+          replicas: 1
+          strategy:
+            rollingUpdate:
+              maxSurge: 1
+              maxUnavailable: 1
+            type: RollingUpdate
+          template:
+            metadata:
+              labels:
+                app: mysql
+            spec:
+              containers:
+              - name: mysql
+                image: mysql:5.6
+                env:
+                  # Use secret in real usage
+                - name: MYSQL_ROOT_PASSWORD
+                  value: password
+                - name: ENVVARTEST
+                  value: foo
+                ports:
+                - containerPort: 3306
+                  name: mysql
+                volumeMounts:
+                - name: mysql-data
+                  mountPath: /var/lib/mysql
+              volumes:
+              - name: mysql-data
+                persistentVolumeClaim:
+                  claimName: mysql-data
+Outputs:
+  MySQLDeploymentUid:
+    Value: !GetAtt MySQLDeploymentStack.uid

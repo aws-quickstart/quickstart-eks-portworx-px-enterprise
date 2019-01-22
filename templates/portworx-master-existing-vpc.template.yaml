@@ -192,6 +192,18 @@ Parameters:
     Type: String
     AllowedValues: [ "1.11", "1.10" ]
     Default: "1.11"
+  KubernetesEKSVersion:
+    Type: String
+    Default: "v1.11.0"
+  PortworxVersion:
+    Type: String
+    Default: "2.0.1"
+  LightHouseVersion:
+    Type: String
+    Default: "2.0.1"
+  VolumeTemplateString:
+    Type: String
+    Default: "type=gp2,size=100"
 Resources:
   EKSStack:
     Type: AWS::CloudFormation::Stack

@@ -59,23 +59,21 @@ Resources:
   MySQLStorageClassStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}examples/example-mysql-storageclass.template.yaml'
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}examples/mysql/example-mysql-storageclass.template.yaml'
       Parameters:
         KubeManifestLambdaArn: !Ref KubeManifestLambdaArn
         KubeConfigPath: !Ref KubeConfigPath
   MySQLPVCStack:
-    DependsOn: MySQLStorageClassStack
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}examples/example-mysql-pvc.template.yaml'
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}examples/mysql/example-mysql-pvc.template.yaml'
       Parameters:
         KubeManifestLambdaArn: !Ref KubeManifestLambdaArn
         KubeConfigPath: !Ref KubeConfigPath
   MySQLDeploymentStack:
-    DependsOn: MySQLPVCStack
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}examples/example-mysql-deployment.template.yaml'
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}examples/mysql/example-mysql-deployment.template.yaml'
       Parameters:
         KubeManifestLambdaArn: !Ref KubeManifestLambdaArn
         KubeConfigPath: !Ref KubeConfigPath

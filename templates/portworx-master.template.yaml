@@ -253,6 +253,18 @@ Parameters:
     Type: String
     AllowedValues: [ "1.11", "1.10" ]
     Default: "1.11"
+  KubernetesEKSVersion:
+    Type: String
+    Default: "v1.11.0"
+  PortworxVersion:
+    Type: String
+    Default: "2.0.1"
+  LightHouseVersion:
+    Type: String
+    Default: "2.0.1"
+  VolumeTemplateString:
+    Type: String
+    Default: "type=gp2,size=100"
 Resources:
   VPCStack:
     Type: AWS::CloudFormation::Stack
@@ -308,6 +320,10 @@ Resources:
         QSS3BucketName: !Ref QSS3BucketName
         QSS3KeyPrefix: !Ref QSS3KeyPrefix
         NodeGroupIAMRole: !GetAtt EKSStack.Outputs.NodeGroupIAMRole
+        KubernetesEKSVersion: !Ref KubernetesEKSVersion
+        PortworxVersion: !Ref PortworxVersion
+        LightHouseVersion: !Ref LightHouseVersion
+        VolumeTemplateString: !Ref VolumeTemplateString
 Outputs:
   KubeConfigPath:
     Value: !GetAtt EKSStack.Outputs.KubeConfigPath

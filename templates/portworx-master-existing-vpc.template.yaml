@@ -23,6 +23,13 @@ Metadata:
       Parameters:
       - QSS3BucketName
       - QSS3KeyPrefix
+    - Label:
+        default: Portworx Configuration
+      Parameters:
+      - KubernetesEKSVersion
+      - PortworxVersion
+      - LightHouseVersion
+      - VolumeTemplateString
     ParameterLabels:
       KeyPairName:
         default: SSH Key Name
@@ -40,6 +47,14 @@ Metadata:
         default: Node Group Name
       NodeVolumeSize:
         default: Node Volume Size
+      KubernetesEKSVersion:
+        default: The EKS version used scheduler container image tags
+      PortworxVersion:
+        default: Version of portworx X.Y.Z
+      LightHouseVersion:
+        default: Version of Lighthouse X.Y.Z
+      VolumeTemplateString:
+        default: The template string (https://docs.portworx.com/cloud-references/auto-disk-provisioning/aws/)
 Parameters:
   KeyPairName:
     Description: The name of an existing public/private key pair, which allows you

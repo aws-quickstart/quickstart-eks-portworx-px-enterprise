@@ -1,5 +1,23 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: Deploys Portworx Enterprise into an existing Kubernetes Cluster (qs-1p7nkdm7b)
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+        default: Portworx Configuration
+      Parameters:
+      - KubernetesEKSVersion
+      - PortworxVersion
+      - LightHouseVersion
+      - VolumeTemplateString
+    ParameterLabels:
+      KubernetesEKSVersion:
+        default: The EKS version used scheduler container image tags
+      PortworxVersion:
+        default: Version of portworx X.Y.Z
+      LightHouseVersion:
+        default: Version of Lighthouse X.Y.Z
+      VolumeTemplateString:
+        default: The template string (https://docs.portworx.com/cloud-references/auto-disk-provisioning/aws/)
 Parameters:
   KubeManifestLambdaArn:
     Type: String
@@ -10,8 +28,10 @@ Parameters:
     Default: "EKSQuickStart"
   PortworxClusterName:
     Type: String
+    Description: The name of the portworx Cluster
   NodeGroupIAMRole:
     Type: String
+    Description: The IAM NodeGroup Role for the Portworx Nodes (EKS Worker Nodes)
   QSS3BucketName:
     Type: String
   QSS3KeyPrefix:
@@ -19,18 +39,23 @@ Parameters:
   KubernetesEKSVersion:
     Type: String
     Default: "v1.11.0"
+    Description:  The EKS version used scheduler container image tags
   PortworxVersion:
     Type: String
     Default: "2.0.1"
+    Description: Version of portworx X.Y.Z
   LightHouseVersion:
     Type: String
     Default: "2.0.1"
+    Description: Version of Lighthouse X.Y.Z
   VolumeTemplateString:
     Type: String
     Default: "type=gp2,size=100"
+    Description: The template string (https://docs.portworx.com/cloud-references/auto-disk-provisioning/aws/)
   PortworxPxEnabledNotInValue:
     Type: String
     Default: "false"
+    Description: Font deploy Portworx deploy if px/enabled equal
 Resources:
   PortworxNamespaceStack:
     Type: "Custom::KubeManifest"

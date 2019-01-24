@@ -2,7 +2,7 @@
 
 https://portworx.com/
 
-<div style="text-align:center"><img src="images/portworx-logo.png" alt="Logo" style="width: 50px;"/></div>
+<img src="images/portworx-logo.png" alt="drawing" width="100"/>
 
 # What is Portworx
 

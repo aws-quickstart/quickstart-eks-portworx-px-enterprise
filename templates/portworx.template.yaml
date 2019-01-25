@@ -4,7 +4,7 @@ Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
         default: Portworx Configuration
-      Parameters:
+    Parameters:
       - KubernetesEKSVersion
       - PortworxVersion
       - LightHouseVersion

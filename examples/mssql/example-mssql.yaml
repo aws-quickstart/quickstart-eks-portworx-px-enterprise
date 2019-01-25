@@ -1,0 +1,258 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Deploys MSSQL using Portworx Volumes
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: KubeManifestConfig
+      Parameters:
+      - KubeManifestLambdaArn
+      - KubeConfigPath
+      - KubeConfigKmsContext
+    - Label:
+        default: Portworx Database Config
+      Parameters:
+      - MSSQLPVCSize
+      - PortworxReplicationLevel
+      - PortworxSnapshotSchedule
+      - PortworxIoProfile
+      - PortworxIOPriority
+      - MSSQLPvcName
+      - MSSQLMaxCpu
+      - MSSQLMinCpu
+      - MSSQLPid
+      - MSSQLSAPassword
+    ParameterLabels:
+      KubeManifestLambdaArn:
+        default: The KubeManifest Lambda Arn used to interact with the EKS Cluster
+      KubeConfigPath:
+        default: The s3 path to the KubeConfig.
+      KubeConfigKmsContext:
+        default: The KMS context used to access the KubeConfig
+      MSSQLPVCSize:
+        default:  PVC Size in Gi for Portworx volume
+      PortworxReplicationLevel:
+        default:  Replication level for Portworx volume
+      PortworxSnapshotSchedule:
+        default: The snapshot schedule string for the Portworx volume
+      PortworxIoProfile:
+        default: The IO Profile for the Portworx volume
+      PortworxIOPriority:
+        default: IO Priority
+      MSSQLPvcName:
+        default: PVC Name
+      MSSQLMaxCpu:
+        default: Max CPU for container
+      MSSQLMinCpu:
+        default: Min CPU for container
+      MSSQLPid:
+        default: Product
+      MSSQLSAPassword:
+        default: Password for MSSQL
+Parameters:
+  KubeManifestLambdaArn:
+    Description: The AWS kubectl Lamnda Arn used to interact with the EKS Cluster
+    Type: String
+  KubeConfigPath:
+    Description: The s3 path to the KubeConfig.
+    Type: String
+  KubeConfigKmsContext:
+    Description: The KMS context used to access the KubeConfig.
+    Type: String
+    Default: "EKSQuickStart"
+  QSS3BucketName:
+    AllowedPattern: ^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$
+    ConstraintDescription: Quick Start bucket name can include numbers, lowercase
+      letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen
+      (-).
+    Default: quickstart-eks-portworx
+    Description: S3 bucket name for the Quick Start assets. This string can include
+      numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start
+      or end with a hyphen (-).
+    Type: String
+  QSS3KeyPrefix:
+    AllowedPattern: ^[0-9a-zA-Z-/]*$
+    ConstraintDescription: Quick Start key prefix can include numbers, lowercase letters,
+      uppercase letters, hyphens (-), and forward slash (/).
+    Default: examples/
+    Description: S3 key prefix for the Quick Start assets. Quick Start key prefix
+      can include numbers, lowercase letters, uppercase letters, hyphens (-), and
+      forward slash (/).
+    Type: String
+  MSSQLPVCSize:
+    Type: String
+    Default: "12Gi"
+    Description: PVC Size in Gi for Portworx volume
+  PortworxReplicationLevel:
+    Type: String
+    Default: "3" 
+    Description: Replication level for Portworx volume
+  PortworxIOPriority:
+    Type: String
+    Default: "high"
+    Description: IO Priority of the volume's IO (high/medium/low)
+  PortworxSnapshotSchedule:
+    Type: String
+    Default: "periodic=60,10"
+    Description: Accepted formats (periodic=mins,snaps-to-keep), (daily=hh:mm,snaps-to-keep) (weekly=weekday@hh:mm,snaps-to-keep) (monthly=day@hh:mm,snaps-to-keep) snaps-to-keep is optional. Periodic, Daily, Weekly and Monthly keep last 5, 7, 5 and 12 snapshots by default respectively.
+  PortworxIoProfile:
+    Type: String
+    Default: "db" 
+    Description: The IO Profile for the Portworx volume
+  MSSQLPvcName:
+    Type: String
+    Default: "mssql-pvc" 
+    Description: The name the Portworx volume
+  MSSQLMaxCpu:
+    Type: String
+    Default: "2" 
+    Description: The name max cpu for MSSQL
+  MSSQLMinCpu:
+    Type: String
+    Default: "1" 
+    Description: The name min CPU for MSSQL
+  MSSQLPid:
+    Type: String
+    Default: "Developer" 
+    Description: The product name
+  MSSQLSAPassword:
+    Type: String
+    Default: "Dangerous123!" 
+    Description: The SQL Server Password
+Resources:
+  MSSQLStorageClassStack:
+    Type: "Custom::KubeManifest"
+    Version: '1.0'
+    Properties:
+      # The lambda function that executes the manifest against the cluster. This is created in one of the parent stacks
+      ServiceToken: !Ref KubeManifestLambdaArn
+      # S3 path to the encrypted config file eg. s3://my-bucket/kube/config.encrypted
+      KubeConfigPath: !Ref KubeConfigPath
+      # context for KMS to use when decrypting the file
+      KubeConfigKmsContext: !Ref KubeConfigKmsContext
+      # Replication level for PVCs using this storage class
+      PortworxReplicationLevel: !Ref PortworxReplicationLevel
+      # Snapshot Schedule
+      PortworxSnapshotSchedule: !Ref PortworxSnapshotSchedule
+      # IO Porfile
+      PortworxIoProfile: !Ref PortworxIoProfile
+      PortworxIOPriority: !Ref PortworxIOPriority
+      # Kubernetes manifest
+      Manifest: !Sub |
+        apiVersion: storage.k8s.io/v1beta1
+        metadata:
+          name: high-portworx-sc
+        provisioner: kubernetes.io/portworx-volume
+        parameters:
+           repl: '${PortworxReplicationLevel}'
+           io_profile: '${PortworxIoProfile}'
+           priority_io: '${PortworxIOPriority}'
+           snap_schedule: '${PortworxSnapshotSchedule}'
+  MSSQLPVCStack:
+    Type: "Custom::KubeManifest"
+    Version: '1.0'
+    Properties:
+      # The lambda function that executes the manifest against the cluster. This is created in one of the parent stacks
+      ServiceToken: !Ref KubeManifestLambdaArn
+      # S3 path to the encrypted config file eg. s3://my-bucket/kube/config.encrypted
+      KubeConfigPath: !Ref KubeConfigPath
+      # context for KMS to use when decrypting the file
+      KubeConfigKmsContext: !Ref KubeConfigKmsContext
+      # Size of PVC used by MSSQL
+      MSSQLPVCSize: !Ref MSSQLPVCSize
+      MSSQLPvcName: !Ref MSSQLPvcName
+      # Kubernetes manifest
+      Manifest: !Sub |
+        apiVersion: v1
+        metadata:
+          name: '${MSSQLPvcName}'
+          annotations:
+            volume.beta.kubernetes.io/storage-class: high-portworx-sc
+          labels:
+            mssql-group: '${MSSQLPvcName}'
+        spec:
+          accessModes:
+          - ReadWriteOnce
+          resources:
+            requests:
+              storage: '${MSSQLPVCSize}'
+  MSSQLServiceStack:
+    Type: "Custom::KubeManifest"
+    Version: '1.0'
+    Properties:
+      # The lambda function that executes the manifest against the cluster. This is created in one of the parent stacks
+      ServiceToken: !Ref KubeManifestLambdaArn
+      # S3 path to the encrypted config file eg. s3://my-bucket/kube/config.encrypted
+      KubeConfigPath: !Ref KubeConfigPath
+      # context for KMS to use when decrypting the file
+      KubeConfigKmsContext: !Ref KubeConfigKmsContext
+      # Kubernetes manifest
+      Manifest:
+        apiVersion: v1
+        kind: Service
+        metadata:
+          name: mssql-svc
+        spec:
+          selector:
+            app: mssql
+          ports:
+            - protocol: TCP
+              port: 1433
+              targetPort: 1433
+          type: LoadBalancer"
+  MSSQLDeploymentStack:
+    Type: "Custom::KubeManifest"
+    Version: '1.0'
+    Properties:
+      # The lambda function that executes the manifest against the cluster. This is created in one of the parent stacks
+      ServiceToken: !Ref KubeManifestLambdaArn
+      # S3 path to the encrypted config file eg. s3://my-bucket/kube/config.encrypted
+      KubeConfigPath: !Ref KubeConfigPath
+      # context for KMS to use when decrypting the file
+      KubeConfigKmsContext: !Ref KubeConfigKmsContext
+      MSSQLMinCpu: !Ref MSSQLMinCpu
+      MSSQLMaxCpu: !Ref MSSQLMaxCpu
+      MSSQLPid: !Ref MSSQLPid
+      MSSQLSAPassword: !Ref MSSQLSAPassword
+      MSSQLPvcName: !Ref MSSQLPvcName
+      # Kubernetes manifest
+      Manifest: !Sub |
+        apiVersion: apps/v1beta1
+        kind: Deployment
+        metadata:
+          name: mssql
+        spec:
+          replicas: 1
+          template:
+            metadata:
+              labels:
+                app: mssql
+            spec:
+              terminationGracePeriodSeconds: 10
+              containers:
+              - name: mssql
+                image: microsoft/mssql-server-linux
+                resources:
+                  limits:
+                    cpu: '${MSSQLMaxCpu}'
+                  requests:
+                    cpu: '${MSSQLMinCpu}'
+                ports:
+                - containerPort: 1433
+                env:
+                - name: ACCEPT_EULA
+                  value: "Y"
+                - name: MSSQL_PID
+                  value: '${MSSQLPid}'
+                - name: SA_PASSWORD
+                  value: '${MSSQLSAPassword}'
+                volumeMounts:
+                - name: mssqldb
+                  mountPath: /var/opt/mssql
+              volumes:
+              - name: mssqldb
+                persistentVolumeClaim:
+                  claimName: '${MSSQLPvcName}'
+Outputs:
+  MSSQLDeploymentUid:
+    Value: !GetAtt MSSQLDeploymentStack.uid

@@ -79,21 +79,27 @@ Parameters:
   PortworxReplicationLevel:
     Type: String
     Default: "3"
+    Description: Replication level of the Portworx volume
   PortworxIOPriority:
     Type: String
     Default: "high"
+    Description: IO Priority of the volume's IO (high/medium/low)
   PortworxGroup:
     Type: String
     Default: "cassandra_vg"
+    Description: The Cassandra volume group name
   CassandraPort:
     Type: Number
     Default: 9042
+    Description: The port cassandra container listens on.
   PortworxStorageSize:
     Type: String
     Default: "10Gi"
+    Description: The storage size of each cassandra node's volume.
   CassandraContainerImage:
     Type: String
     Default: "gcr.io/google-samples/cassandra:v12"
+    Description: The container image used for Cassandra
 Resources:
   CassandraStorageClassStack:
     Type: "Custom::KubeManifest"

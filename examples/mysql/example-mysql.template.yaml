@@ -73,15 +73,19 @@ Parameters:
   MySQLPVCSize:
     Type: String
     Default: "12Gi"
+    Description: PVC Size in Gi for Portworx volume
   PortworxReplicationLevel:
     Type: String
-    Default: "3"
+    Default: "3" 
+    Description: Replication level for Portworx volume
   PortworxSnapshotSchedule:
     Type: String
     Default: "periodic=60,10"
+    Description: Accepted formats (periodic=mins,snaps-to-keep), (daily=hh:mm,snaps-to-keep) (weekly=weekday@hh:mm,snaps-to-keep) (monthly=day@hh:mm,snaps-to-keep) snaps-to-keep is optional. Periodic, Daily, Weekly and Monthly keep last 5, 7, 5 and 12 snapshots by default respectively.
   PortworxIoProfile:
     Type: String
-    Default: "db"
+    Default: "db" 
+    Description: The IO Profile for the Portworx volume
 Resources:
   MySQLStorageClassStack:
     Type: "Custom::KubeManifest"

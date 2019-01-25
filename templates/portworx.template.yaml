@@ -32,10 +32,6 @@ Parameters:
   NodeGroupIAMRole:
     Type: String
     Description: The IAM NodeGroup Role for the Portworx Nodes (EKS Worker Nodes)
-  QSS3BucketName:
-    Type: String
-  QSS3KeyPrefix:
-    Type: String
   KubernetesEKSVersion:
     Type: String
     Default: "v1.11.0"
@@ -98,7 +94,7 @@ Resources:
           name: portworx
           namespace: kube-system
           annotations:
-            portworx.com/install-source: "https://install.portworx.com/?kbver=1.12.0&k=etcd%%3Ahttp%%3A%%2F%%2Fpx-etcd1.portworx.com%%3A2379%%2Cetcd%%3Ahttp%%3A%%2F%%2Fpx-etcd2.portworx.com%%3A2379%%2Cetcd%%3Ahttp%%3A%%2F%%2Fpx-etcd3.portworx.com%%3A2379&s=%%2Fdev%%2Fxvdf&j=auto&c=px-cluster-bd80474b-c74a-48dd-937c-9b9c9d795261&stork=true&lh=true&st=k8s"
+            portworx.com/install-source: "https://install.portworx.com"
         spec:
           minReadySeconds: 0
           updateStrategy:

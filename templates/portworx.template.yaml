@@ -3,8 +3,9 @@ Description: Deploys Portworx Enterprise into an existing Kubernetes Cluster (qs
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
+    - Label:
         default: Portworx Configuration
-    Parameters:
+      Parameters:
       - KubernetesEKSVersion
       - PortworxVersion
       - LightHouseVersion

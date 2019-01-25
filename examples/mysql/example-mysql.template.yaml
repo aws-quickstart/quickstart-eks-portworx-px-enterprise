@@ -10,11 +10,6 @@ Metadata:
       - KubeConfigPath
       - KubeConfigKmsContext
     - Label:
-        default: AWS Quick Start Configuration
-      Parameters:
-      - QSS3BucketName
-      - QSS3KeyPrefix
-    - Label:
         default: Portworx Database Config
       Parameters:
       - MySQLPVCSize
@@ -28,10 +23,6 @@ Metadata:
         default: The s3 path to the KubeConfig.
       KubeConfigKmsContext:
         default: The KMS context used to access the KubeConfig
-      QSS3BucketName:
-        default: Quick Start S3 Bucket Name
-      QSS3KeyPrefix:
-        default: Quick Start S3 Key Prefix
       MySQLPVCSize:
         default:  PVC Size in Gi for Portworx volume
       PortworxReplicationLevel:
@@ -51,25 +42,6 @@ Parameters:
     Description: The KMS context used to access the KubeConfig.
     Type: String
     Default: "EKSQuickStart"
-  QSS3BucketName:
-    AllowedPattern: ^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$
-    ConstraintDescription: Quick Start bucket name can include numbers, lowercase
-      letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen
-      (-).
-    Default: quickstart-eks-portworx
-    Description: S3 bucket name for the Quick Start assets. This string can include
-      numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start
-      or end with a hyphen (-).
-    Type: String
-  QSS3KeyPrefix:
-    AllowedPattern: ^[0-9a-zA-Z-/]*$
-    ConstraintDescription: Quick Start key prefix can include numbers, lowercase letters,
-      uppercase letters, hyphens (-), and forward slash (/).
-    Default: examples/
-    Description: S3 key prefix for the Quick Start assets. Quick Start key prefix
-      can include numbers, lowercase letters, uppercase letters, hyphens (-), and
-      forward slash (/).
-    Type: String
   MySQLPVCSize:
     Type: String
     Default: "12Gi"

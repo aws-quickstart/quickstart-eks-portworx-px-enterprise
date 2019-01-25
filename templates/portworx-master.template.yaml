@@ -271,15 +271,19 @@ Parameters:
   KubernetesEKSVersion:
     Type: String
     Default: "v1.11.0"
+    Description:  The EKS version used scheduler container image tags
   PortworxVersion:
     Type: String
     Default: "2.0.1"
+    Description: Version of portworx X.Y.Z
   LightHouseVersion:
     Type: String
     Default: "2.0.1"
+    Description: Version of Lighthouse X.Y.Z
   VolumeTemplateString:
     Type: String
     Default: "type=gp2,size=100"
+    Description: The template string (https://docs.portworx.com/cloud-references/auto-disk-provisioning/aws/)
 Resources:
   VPCStack:
     Type: AWS::CloudFormation::Stack
@@ -307,6 +311,7 @@ Resources:
       Parameters:
         PublicSubnet1ID: !GetAtt VPCStack.Outputs.PublicSubnet1ID
         PublicSubnet2ID: !GetAtt VPCStack.Outputs.PublicSubnet2ID
+        PublicSubnet3ID: !GetAtt VPCStack.Outputs.PublicSubnet3ID
         KeyPairName: !Ref KeyPairName
         QSS3BucketName: !Ref QSS3BucketName
         QSS3KeyPrefix: !Sub "${QSS3KeyPrefix}submodules/quickstart-aws-eks/"

@@ -21,6 +21,7 @@ Metadata:
       - PostgresContainerPort
       - PostgresPVCSize
       - PortworxReplicationLevel
+      - PortworxSnapshotSchedule
     ParameterLabels:
       KubeManifestLambdaArn:
         default: The KubeManifest Lambda Arn used to interact with the EKS Cluster
@@ -40,6 +41,8 @@ Metadata:
         default: The Volume size in Gi for Postgres.
       PortworxReplicationLevel:
         default: Replication level of Portworx volume
+      PortworxSnapshotSchedule:
+        default: The snapshot schedule string for the Portworx volume
 Parameters:
   KubeManifestLambdaArn:
     Description: The AWS kubectl Lamnda Arn used to interact with the EKS Cluster
@@ -73,15 +76,23 @@ Parameters:
   PostgresContainerVersion:
     Type: String
     Default: "postgres:10.1"
+    Description: Container Image to use for Portworx
   PostgresContainerPort:
     Type: Number
     Default: 5432
+    Description: Container port for Postgres container
   PostgresPVCSize:
     Type: String
     Default: "5Gi"
+    Description: The Volume size in Gi for Postgres.
   PortworxReplicationLevel:
     Type: String
     Default: "1"
+    Description: Replication level of Portworx volume
+  PortworxSnapshotSchedule:
+    Type: String
+    Default: "periodic=60,10"
+    Description: Accepted formats (periodic=mins,snaps-to-keep), (daily=hh:mm,snaps-to-keep) (weekly=weekday@hh:mm,snaps-to-keep) (monthly=day@hh:mm,snaps-to-keep) snaps-to-keep is optional. Periodic, Daily, Weekly and Monthly keep last 5, 7, 5 and 12 snapshots by default respectively.
 Resources:
   PostgresStorageClassStack:
     Type: "Custom::KubeManifest"
@@ -95,6 +106,8 @@ Resources:
       KubeConfigKmsContext: !Ref KubeConfigKmsContext
       # Replication level for PVCs using this storage class
       PortworxReplicationLevel: !Ref PortworxReplicationLevel
+      # Snapshot Schedule
+      PortworxSnapshotSchedule: !Ref PortworxSnapshotSchedule
       # Kubernetes manifest
       Manifest: !Sub |
         kind: StorageClass
@@ -104,6 +117,7 @@ Resources:
         provisioner: kubernetes.io/portworx-volume
         parameters:
            repl: '${PortworxReplicationLevel}'
+           snap_schedule: '${PortworxSnapshotSchedule}'
   PostgresPVCStack:
     Type: "Custom::KubeManifest"
     Version: '1.0'
